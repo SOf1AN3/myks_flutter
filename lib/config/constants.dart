@@ -9,7 +9,7 @@ class AppConstants {
       'http://stream.your-radio.com:8000/stream';
 
   // API Base URL (change this to your backend URL)
-  static const String apiBaseUrl = 'https://api.myksradio.com';
+  static const String apiBaseUrl = 'https://myks.vercel.app';
 
   // Timing
   static const Duration metadataRefreshInterval = Duration(seconds: 10);
