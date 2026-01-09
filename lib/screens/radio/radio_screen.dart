@@ -4,94 +4,129 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../config/theme.dart';
 import '../../providers/radio_provider.dart';
 import '../../widgets/bottom_navigation.dart';
-import '../../widgets/custom_app_bar.dart';
-import '../../widgets/common_widgets.dart';
+import '../../widgets/mesh_gradient_background.dart';
+import '../../widgets/liquid_glass_container.dart';
 import 'widgets/audio_visualizer.dart';
 import 'widgets/player_controls.dart';
-import 'widgets/now_playing_card.dart';
-import 'widgets/radio_stats.dart';
-import 'widgets/track_history.dart';
+import 'widgets/live_community_panel.dart';
 
-/// Main radio screen with player and controls
+/// Main radio screen with liquid glass design
+/// Redesigned to match design.html aesthetic
 class RadioScreen extends StatelessWidget {
   const RadioScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final radioProvider = context.watch<RadioProvider>();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: const CustomAppBar(title: 'Radio'),
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: () => radioProvider.refreshMetadata(),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // Header
-                _buildHeader(
-                  context,
-                ).animate().fadeIn(duration: const Duration(milliseconds: 400)),
+      backgroundColor: Colors.transparent,
+      body: MeshGradientBackground(
+        child: SafeArea(
+          bottom: false,
+          child: Stack(
+            children: [
+              // Main scrollable content
+              SingleChildScrollView(
+                padding: const EdgeInsets.only(
+                  bottom: 450,
+                ), // Space for panel + nav
+                child: Column(
+                  children: [
+                    // Header with back and menu buttons
+                    _buildHeader(context).animate().fadeIn(
+                      duration: const Duration(milliseconds: 400),
+                    ),
 
-                const SizedBox(height: 24),
+                    const SizedBox(height: 20),
 
-                // Main player card
-                _buildPlayerCard(context, radioProvider, isDark)
-                    .animate()
-                    .fadeIn(
-                      duration: const Duration(milliseconds: 500),
-                      delay: const Duration(milliseconds: 100),
-                    )
-                    .slideY(begin: 0.1, end: 0),
+                    // Audio Visualizer in curved glass viewer
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child:
+                          AudioVisualizer(
+                                isPlaying: radioProvider.isPlaying,
+                                height: 200,
+                              )
+                              .animate()
+                              .fadeIn(
+                                duration: const Duration(milliseconds: 500),
+                                delay: const Duration(milliseconds: 100),
+                              )
+                              .slideY(begin: 0.1, end: 0),
+                    ),
 
-                const SizedBox(height: 24),
+                    const SizedBox(height: 40),
 
-                // Now Playing Card
-                NowPlayingCard(
-                  metadata: radioProvider.metadata,
-                  isPlaying: radioProvider.isPlaying,
-                  isLoading: radioProvider.isLoading,
-                ).animate().fadeIn(
-                  duration: const Duration(milliseconds: 500),
-                  delay: const Duration(milliseconds: 200),
+                    // Track title and info
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: _buildTrackInfo(context, radioProvider)
+                          .animate()
+                          .fadeIn(
+                            duration: const Duration(milliseconds: 500),
+                            delay: const Duration(milliseconds: 200),
+                          ),
+                    ),
+
+                    const SizedBox(height: 40),
+
+                    // Player controls (prev + play + next + volume)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child:
+                          PlayerControls(
+                            isPlaying: radioProvider.isPlaying,
+                            isLoading: radioProvider.isLoading,
+                            volume: radioProvider.volume,
+                            onTogglePlay: () => radioProvider.togglePlayPause(),
+                            onVolumeChange: (volume) =>
+                                radioProvider.setVolume(volume),
+                          ).animate().fadeIn(
+                            duration: const Duration(milliseconds: 500),
+                            delay: const Duration(milliseconds: 300),
+                          ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Error message if any
+                    if (radioProvider.error != null)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: _buildErrorBanner(
+                          radioProvider.error!,
+                        ).animate().fadeIn().shake(),
+                      ),
+
+                    const SizedBox(height: 20),
+                  ],
                 ),
+              ),
 
-                const SizedBox(height: 24),
-
-                // Radio Stats
-                RadioStats(
-                  metadata: radioProvider.metadata,
-                  isPlaying: radioProvider.isPlaying,
-                ).animate().fadeIn(
-                  duration: const Duration(milliseconds: 500),
-                  delay: const Duration(milliseconds: 300),
+              // Live Community Panel at bottom (fixed)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: const LiveCommunityPanel()
+                          .animate()
+                          .fadeIn(
+                            duration: const Duration(milliseconds: 500),
+                            delay: const Duration(milliseconds: 400),
+                          )
+                          .slideY(begin: 0.2, end: 0),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                 ),
-
-                const SizedBox(height: 32),
-
-                // Track History
-                TrackHistory(
-                  tracks: radioProvider.history,
-                  onViewAll: () => _showFullHistory(context, radioProvider),
-                ).animate().fadeIn(
-                  duration: const Duration(milliseconds: 500),
-                  delay: const Duration(milliseconds: 400),
-                ),
-
-                const SizedBox(height: 32),
-
-                // Error message
-                if (radioProvider.error != null)
-                  _buildErrorBanner(
-                    radioProvider.error!,
-                    isDark,
-                  ).animate().fadeIn().shake(),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -100,82 +135,96 @@ class RadioScreen extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
-    return Column(
-      children: [
-        const GradientText(
-          text: 'Myks Radio',
-          style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'Votre radio en ligne 24/7',
-          style: TextStyle(
-            fontSize: 14,
-            color: Theme.of(context).brightness == Brightness.dark
-                ? AppColors.darkMutedForeground
-                : AppColors.lightMutedForeground,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPlayerCard(
-    BuildContext context,
-    RadioProvider radioProvider,
-    bool isDark,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        color: (isDark ? Colors.white : Colors.black).withOpacity(0.05),
-        border: Border.all(
-          color: (isDark ? Colors.white : Colors.black).withOpacity(0.1),
-        ),
-      ),
-      child: Column(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Audio Visualizer
-          AudioVisualizer(isPlaying: radioProvider.isPlaying, height: 80),
-
-          const SizedBox(height: 32),
-
-          // Player Controls
-          PlayerControls(
-            isPlaying: radioProvider.isPlaying,
-            isLoading: radioProvider.isLoading,
-            volume: radioProvider.volume,
-            onTogglePlay: () => radioProvider.togglePlayPause(),
-            onVolumeChange: (volume) => radioProvider.setVolume(volume),
+          // Back button
+          LiquidControlContainer(
+            size: 40,
+            onTap: () => Navigator.of(context).pop(),
+            child: const Icon(
+              Icons.keyboard_arrow_down,
+              size: 24,
+              color: Colors.white,
+            ),
           ),
 
-          const SizedBox(height: 16),
-
-          // Current track info (small)
-          if (radioProvider.currentTrack != null)
-            Text(
-              radioProvider.currentTrack!.fullDisplay,
-              style: TextStyle(
-                fontSize: 14,
-                color: isDark
-                    ? AppColors.darkMutedForeground
-                    : AppColors.lightMutedForeground,
+          // Title
+          Column(
+            children: [
+              Text(
+                'STREAMING NOW',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 2,
+                  color: Colors.white.withOpacity(0.4),
+                ),
               ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+              const SizedBox(height: 4),
+              Text(
+                'MYKS Radio',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white.withOpacity(0.9),
+                ),
+              ),
+            ],
+          ),
+
+          // Menu button
+          LiquidControlContainer(
+            size: 40,
+            onTap: () => _showMenu(context),
+            child: const Icon(Icons.more_horiz, size: 24, color: Colors.white),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildErrorBanner(String error, bool isDark) {
+  Widget _buildTrackInfo(BuildContext context, RadioProvider radioProvider) {
+    final track = radioProvider.currentTrack;
+
+    return Column(
+      children: [
+        Text(
+          track?.displayTitle ?? 'Vibe Urbaine Vol. 3',
+          style: const TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+            letterSpacing: -0.5,
+          ),
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          track?.displayArtist ?? 'Original Mix • 102.4 FM',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w500,
+            color: AppColors.primary.withOpacity(0.9),
+          ),
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildErrorBanner(String error) {
     return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         color: AppColors.error.withOpacity(0.1),
         border: Border.all(color: AppColors.error.withOpacity(0.3)),
       ),
@@ -194,151 +243,73 @@ class RadioScreen extends StatelessWidget {
     );
   }
 
-  void _showFullHistory(BuildContext context, RadioProvider radioProvider) {
+  void _showMenu(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.7,
-        minChildSize: 0.5,
-        maxChildSize: 0.95,
-        builder: (context, scrollController) {
-          final isDark = Theme.of(context).brightness == Brightness.dark;
-
-          return Container(
-            decoration: BoxDecoration(
-              color: isDark
-                  ? AppColors.darkBackground
-                  : AppColors.lightBackground,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(20),
+      builder: (context) => LiquidGlassContainer(
+        margin: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(24),
+        borderRadius: GlassEffects.radiusLarge,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
-            child: Column(
-              children: [
-                // Handle
-                Container(
-                  margin: const EdgeInsets.symmetric(vertical: 12),
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.darkMuted : AppColors.lightMuted,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-
-                // Header
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Historique complet',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: isDark
-                              ? AppColors.darkForeground
-                              : AppColors.lightForeground,
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          radioProvider.clearHistory();
-                          Navigator.pop(context);
-                        },
-                        child: const Text('Effacer'),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 8),
-
-                // Track list
-                Expanded(
-                  child: ListView.builder(
-                    controller: scrollController,
-                    padding: const EdgeInsets.all(20),
-                    itemCount: radioProvider.history.length,
-                    itemBuilder: (context, index) {
-                      final track = radioProvider.history[index];
-
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          color: (isDark ? Colors.white : Colors.black)
-                              .withOpacity(0.03),
-                        ),
-                        child: Row(
-                          children: [
-                            Text(
-                              '${index + 1}',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primaryLight,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(8),
-                                gradient: AppColors.violetGradient,
-                              ),
-                              child: const Icon(
-                                Icons.music_note,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    track.displayTitle,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w500,
-                                      color: isDark
-                                          ? AppColors.darkForeground
-                                          : AppColors.lightForeground,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  Text(
-                                    track.displayArtist,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: isDark
-                                          ? AppColors.darkMutedForeground
-                                          : AppColors.lightMutedForeground,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
+            const SizedBox(height: 24),
+            _MenuOption(
+              icon: Icons.share,
+              title: 'Partager',
+              onTap: () => Navigator.pop(context),
             ),
-          );
-        },
+            _MenuOption(
+              icon: Icons.info_outline,
+              title: 'À propos',
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/about');
+              },
+            ),
+            _MenuOption(
+              icon: Icons.settings,
+              title: 'Paramètres',
+              onTap: () => Navigator.pop(context),
+            ),
+          ],
+        ),
       ),
+    );
+  }
+}
+
+class _MenuOption extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final VoidCallback onTap;
+
+  const _MenuOption({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: Icon(icon, color: Colors.white.withOpacity(0.9)),
+      title: Text(
+        title,
+        style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 16),
+      ),
+      onTap: onTap,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     );
   }
 }

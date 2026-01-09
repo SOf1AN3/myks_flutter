@@ -12,7 +12,10 @@ class AppColors {
   static const lightMutedForeground = Color(0xFF737373);
   static const lightBorder = Color(0xFFE5E5E5);
 
-  // Dark Theme
+  // Dark Theme - Liquid Glass Design
+  static const darkBackgroundDeep = Color(
+    0xFF0B0118,
+  ); // New deep violet background
   static const darkBackground = Color(0xFF0A0A0A);
   static const darkForeground = Color(0xFFFAFAFA);
   static const darkCard = Color(0xFF0A0A0A);
@@ -20,19 +23,35 @@ class AppColors {
   static const darkMutedForeground = Color(0xFFA3A3A3);
   static const darkBorder = Color(0xFF262626);
 
-  // Primary (Violet)
+  // Primary (Violet) - Liquid Glass Design
   static const primaryLight = Color(0xFF8B5CF6);
   static const primaryDark = Color(0xFFA78BFA);
+  static const primary = Color(0xFFA855F7); // Main violet #A855F7
 
   // Secondary
   static const secondary = Color(0xFFA855F7);
   static const tertiary = Color(0xFFD946EF);
+  static const purpleLight = Color(0xFFD8B4FE); // For gradient middle
 
   // Status Colors
   static const success = Color(0xFF22C55E);
   static const error = Color(0xFFEF4444);
   static const warning = Color(0xFFF59E0B);
   static const live = Color(0xFFEF4444);
+
+  // Liquid Glass Effect Colors
+  static const glassBackground = Color(0x14FFFFFF); // rgba(255, 255, 255, 0.08)
+  static const glassBorder = Color(0x1FFFFFFF); // rgba(255, 255, 255, 0.12)
+  static const glassInnerGlow = Color(0x0DFFFFFF); // rgba(255, 255, 255, 0.05)
+  static const glassControlBg = Color(0x26FFFFFF); // rgba(255, 255, 255, 0.15)
+  static const glassControlBorder = Color(
+    0x33FFFFFF,
+  ); // rgba(255, 255, 255, 0.2)
+
+  // Mesh Gradient Colors
+  static const meshGradient1 = Color(0x33A855F7); // rgba(168, 85, 247, 0.2)
+  static const meshGradient2 = Color(0x408B5CF6); // rgba(139, 92, 246, 0.25)
+  static const meshGradient3 = Color(0x664C1D95); // rgba(76, 29, 149, 0.4)
 
   // Gradients
   static const violetGradient = LinearGradient(
@@ -47,11 +66,72 @@ class AppColors {
     end: Alignment.bottomCenter,
   );
 
+  // Audio Visualizer Gradient
+  static const waveBarGradient = LinearGradient(
+    colors: [Color(0xFFA855F7), Color(0xFFD8B4FE), Color(0xFFFFFFFF)],
+    begin: Alignment.bottomCenter,
+    end: Alignment.topCenter,
+  );
+
+  // Play Button Liquid Gradient
+  static const playButtonGradient = LinearGradient(
+    colors: [Color(0x80A855F7), Color(0x33A855F7)], // Semi-transparent violet
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
   static const darkGradient = LinearGradient(
     colors: [Color(0xFF0A0A0A), Color(0xFF1A1A2E)],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
+}
+
+/// Liquid Glass effect constants
+class GlassEffects {
+  // Blur intensity
+  static const double blurIntensity = 24.0;
+  static const double blurIntensityControl = 12.0;
+
+  // Border radius
+  static const double radiusSmall = 12.0;
+  static const double radiusMedium = 24.0;
+  static const double radiusLarge = 40.0;
+  static const double radiusXLarge = 48.0;
+
+  // Shadows
+  static List<BoxShadow> get glowShadow => [
+    BoxShadow(
+      color: AppColors.primary.withOpacity(0.4),
+      blurRadius: 40,
+      offset: const Offset(0, 0),
+    ),
+    const BoxShadow(
+      color: Color(0x33FFFFFF), // rgba(255, 255, 255, 0.2)
+      blurRadius: 20,
+      offset: Offset(0, 0),
+      spreadRadius: -10,
+      blurStyle: BlurStyle.inner,
+    ),
+  ];
+
+  static List<BoxShadow> get glassShadow => [
+    const BoxShadow(
+      color: Color(0x33000000), // rgba(0, 0, 0, 0.2)
+      blurRadius: 32,
+      offset: Offset(0, 8),
+    ),
+  ];
+
+  static List<BoxShadow> get innerGlowShadow => [
+    BoxShadow(
+      color: AppColors.primary.withOpacity(0.15),
+      blurRadius: 20,
+      offset: const Offset(0, 0),
+      spreadRadius: -5,
+      blurStyle: BlurStyle.inner,
+    ),
+  ];
 }
 
 /// App Theme configuration
@@ -130,7 +210,7 @@ class AppTheme {
       useMaterial3: true,
     ).copyWith(
       textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
-      scaffoldBackgroundColor: AppColors.darkBackground,
+      scaffoldBackgroundColor: AppColors.darkBackgroundDeep,
       cardColor: AppColors.darkCard,
     );
   }

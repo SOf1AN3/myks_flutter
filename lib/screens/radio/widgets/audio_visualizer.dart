@@ -1,22 +1,18 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../../config/theme.dart';
+import '../../../widgets/liquid_glass_container.dart';
 
-/// Audio visualizer with animated bars
+/// Audio visualizer with animated bars in a curved glass viewer
+/// Matches the design.html with 10 bars and specific heights
 class AudioVisualizer extends StatefulWidget {
   final bool isPlaying;
-  final int barCount;
   final double height;
-  final double barWidth;
-  final double spacing;
 
   const AudioVisualizer({
     super.key,
     required this.isPlaying,
-    this.barCount = 21,
-    this.height = 60,
-    this.barWidth = 4,
-    this.spacing = 3,
+    this.height = 200,
   });
 
   @override
@@ -25,6 +21,25 @@ class AudioVisualizer extends StatefulWidget {
 
 class _AudioVisualizerState extends State<AudioVisualizer>
     with TickerProviderStateMixin {
+  // 10 bars with predefined heights matching design.html
+  // Heights: h-12, h-24, h-16, h-32, h-20, h-36, h-24, h-16, h-28, h-14
+  // In pixels (1rem = 4px): 48, 96, 64, 128, 80, 144, 96, 64, 112, 56
+  static const List<double> _barHeights = [
+    48,
+    96,
+    64,
+    128,
+    80,
+    144,
+    96,
+    64,
+    112,
+    56,
+  ];
+  static const int _barCount = 10;
+  static const double _barWidth = 5;
+  static const double _barSpacing = 6;
+
   late List<AnimationController> _controllers;
   late List<Animation<double>> _animations;
   final math.Random _random = math.Random();
@@ -36,20 +51,20 @@ class _AudioVisualizerState extends State<AudioVisualizer>
   }
 
   void _initAnimations() {
-    _controllers = List.generate(widget.barCount, (index) {
-      final duration = Duration(milliseconds: 300 + _random.nextInt(400));
+    _controllers = List.generate(_barCount, (index) {
+      final duration = Duration(milliseconds: 400 + _random.nextInt(400));
       return AnimationController(vsync: this, duration: duration);
     });
 
-    _animations = _controllers.map((controller) {
-      final minHeight = 0.15 + _random.nextDouble() * 0.15;
-      final maxHeight = 0.5 + _random.nextDouble() * 0.5;
+    _animations = List.generate(_barCount, (index) {
+      final baseHeight = _barHeights[index];
+      final minHeight = baseHeight * 0.7;
+      final maxHeight = baseHeight * 1.0;
 
-      return Tween<double>(
-        begin: minHeight,
-        end: maxHeight,
-      ).animate(CurvedAnimation(parent: controller, curve: Curves.easeInOut));
-    }).toList();
+      return Tween<double>(begin: minHeight, end: maxHeight).animate(
+        CurvedAnimation(parent: _controllers[index], curve: Curves.easeInOut),
+      );
+    });
 
     if (widget.isPlaying) {
       _startAnimations();
@@ -67,9 +82,12 @@ class _AudioVisualizerState extends State<AudioVisualizer>
   }
 
   void _stopAnimations() {
-    for (var controller in _controllers) {
-      controller.stop();
-      controller.animateTo(0.2, duration: const Duration(milliseconds: 300));
+    for (var i = 0; i < _controllers.length; i++) {
+      _controllers[i].stop();
+      _controllers[i].animateTo(
+        0.7,
+        duration: const Duration(milliseconds: 300),
+      );
     }
   }
 
@@ -95,30 +113,23 @@ class _AudioVisualizerState extends State<AudioVisualizer>
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return CurvedGlassViewer(
       height: widget.height,
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.end,
-        children: List.generate(widget.barCount, (index) {
+        children: List.generate(_barCount, (index) {
           return AnimatedBuilder(
             animation: _animations[index],
             builder: (context, child) {
               return Container(
-                width: widget.barWidth,
-                height: widget.height * _animations[index].value,
-                margin: EdgeInsets.symmetric(horizontal: widget.spacing / 2),
+                width: _barWidth,
+                height: _animations[index].value,
+                margin: const EdgeInsets.symmetric(horizontal: _barSpacing / 2),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(widget.barWidth / 2),
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [
-                      AppColors.primaryLight,
-                      AppColors.secondary,
-                      AppColors.tertiary,
-                    ],
-                  ),
+                  borderRadius: BorderRadius.circular(_barWidth / 2),
+                  gradient: AppColors.waveBarGradient,
                 ),
               );
             },

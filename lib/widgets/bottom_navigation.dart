@@ -1,7 +1,10 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../config/routes.dart';
+import '../config/theme.dart';
 
-/// Bottom navigation bar for the app
+/// Bottom navigation bar with liquid glass effect
+/// Redesigned to match design.html aesthetic
 class AppBottomNavigation extends StatelessWidget {
   final int currentIndex;
 
@@ -9,31 +12,56 @@ class AppBottomNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return NavigationBar(
-      selectedIndex: currentIndex,
-      onDestinationSelected: (index) => _onItemTapped(context, index),
-      destinations: const [
-        NavigationDestination(
-          icon: Icon(Icons.home_outlined),
-          selectedIcon: Icon(Icons.home),
-          label: 'Accueil',
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(color: Colors.white.withOpacity(0.1), width: 1),
         ),
-        NavigationDestination(
-          icon: Icon(Icons.radio_outlined),
-          selectedIcon: Icon(Icons.radio),
-          label: 'Radio',
+      ),
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(
+            sigmaX: GlassEffects.blurIntensity,
+            sigmaY: GlassEffects.blurIntensity,
+          ),
+          child: Container(
+            decoration: BoxDecoration(color: AppColors.glassBackground),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 16,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _NavItem(
+                      icon: Icons.home,
+                      isActive: currentIndex == 0,
+                      onTap: () => _onItemTapped(context, 0),
+                    ),
+                    _NavItem(
+                      icon: Icons.radio,
+                      isActive: currentIndex == 1,
+                      onTap: () => _onItemTapped(context, 1),
+                    ),
+                    _NavItem(
+                      icon: Icons.explore,
+                      isActive: currentIndex == 2,
+                      onTap: () => _onItemTapped(context, 2),
+                    ),
+                    _NavItem(
+                      icon: Icons.person,
+                      isActive: currentIndex == 3,
+                      onTap: () => _onItemTapped(context, 3),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ),
-        NavigationDestination(
-          icon: Icon(Icons.video_library_outlined),
-          selectedIcon: Icon(Icons.video_library),
-          label: 'Vidéos',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.info_outline),
-          selectedIcon: Icon(Icons.info),
-          label: 'À propos',
-        ),
-      ],
+      ),
     );
   }
 
@@ -75,5 +103,46 @@ class AppBottomNavigation extends StatelessWidget {
       default:
         return 0;
     }
+  }
+}
+
+/// Navigation item with icon and active indicator
+class _NavItem extends StatelessWidget {
+  final IconData icon;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  const _NavItem({
+    required this.icon,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 28,
+            color: isActive ? AppColors.primary : Colors.white.withOpacity(0.4),
+          ),
+          const SizedBox(height: 4),
+          // Active indicator dot
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: isActive ? 4 : 0,
+            height: isActive ? 4 : 0,
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              shape: BoxShape.circle,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

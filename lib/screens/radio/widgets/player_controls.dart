@@ -1,8 +1,11 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../config/theme.dart';
+import '../../../widgets/liquid_button.dart';
 
-/// Player controls widget with play/pause and volume
-class PlayerControls extends StatefulWidget {
+/// Player controls widget with prev/play/next buttons and volume slider
+/// Redesigned to match the liquid glass aesthetic from design.html
+class PlayerControls extends StatelessWidget {
   final bool isPlaying;
   final bool isLoading;
   final double volume;
@@ -19,180 +22,159 @@ class PlayerControls extends StatefulWidget {
   });
 
   @override
-  State<PlayerControls> createState() => _PlayerControlsState();
-}
-
-class _PlayerControlsState extends State<PlayerControls>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _playButtonController;
-  bool _showVolumeSlider = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _playButtonController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 200),
-    );
-
-    if (widget.isPlaying) {
-      _playButtonController.forward();
-    }
-  }
-
-  @override
-  void didUpdateWidget(PlayerControls oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.isPlaying != oldWidget.isPlaying) {
-      if (widget.isPlaying) {
-        _playButtonController.forward();
-      } else {
-        _playButtonController.reverse();
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _playButtonController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Column(
       children: [
+        // Control buttons: prev + play + next
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Volume button
-            _buildVolumeButton(),
+            // Previous button
+            LiquidButton.control(
+              icon: Icons.skip_previous,
+              onTap: () {
+                // Radio doesn't have previous track, but we keep the button for design
+              },
+            ),
 
-            const SizedBox(width: 24),
+            const SizedBox(width: 32),
 
             // Main play/pause button
-            _buildPlayButton(),
+            LiquidButton.play(
+              isPlaying: isPlaying,
+              isLoading: isLoading,
+              onTap: onTogglePlay,
+            ),
 
-            const SizedBox(width: 24),
+            const SizedBox(width: 32),
 
-            // Placeholder for symmetry
-            const SizedBox(width: 48),
+            // Next button
+            LiquidButton.control(
+              icon: Icons.skip_next,
+              onTap: () {
+                // Radio doesn't have next track, but we keep the button for design
+              },
+            ),
           ],
         ),
 
-        // Volume slider (expandable)
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          height: _showVolumeSlider ? 48 : 0,
-          child: AnimatedOpacity(
-            duration: const Duration(milliseconds: 200),
-            opacity: _showVolumeSlider ? 1 : 0,
-            child: _buildVolumeSlider(),
-          ),
-        ),
+        const SizedBox(height: 40),
+
+        // Volume slider
+        _VolumeSlider(volume: volume, onVolumeChange: onVolumeChange),
       ],
     );
   }
+}
 
-  Widget _buildPlayButton() {
-    return GestureDetector(
-      onTap: widget.isLoading ? null : widget.onTogglePlay,
-      child: Container(
-        width: 80,
-        height: 80,
-        decoration: BoxDecoration(
-          gradient: AppColors.violetGradient,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primaryLight.withOpacity(0.4),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Center(
-          child: widget.isLoading
-              ? const SizedBox(
-                  width: 32,
-                  height: 32,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 3,
-                    color: Colors.white,
-                  ),
-                )
-              : AnimatedIcon(
-                  icon: AnimatedIcons.play_pause,
-                  progress: _playButtonController,
-                  color: Colors.white,
-                  size: 40,
-                ),
-        ),
-      ),
-    );
-  }
+/// Volume slider with liquid glass style
+class _VolumeSlider extends StatelessWidget {
+  final double volume;
+  final ValueChanged<double> onVolumeChange;
 
-  Widget _buildVolumeButton() {
-    IconData volumeIcon;
-    if (widget.volume == 0) {
-      volumeIcon = Icons.volume_off;
-    } else if (widget.volume < 0.5) {
-      volumeIcon = Icons.volume_down;
-    } else {
-      volumeIcon = Icons.volume_up;
-    }
+  const _VolumeSlider({required this.volume, required this.onVolumeChange});
 
-    return IconButton(
-      icon: Icon(volumeIcon),
-      iconSize: 28,
-      onPressed: () {
-        setState(() {
-          _showVolumeSlider = !_showVolumeSlider;
-        });
-      },
-      tooltip: 'Volume',
-    );
-  }
-
-  Widget _buildVolumeSlider() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 280),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
+          // Volume mute icon
           Icon(
-            Icons.volume_down,
+            Icons.volume_mute,
             size: 20,
-            color: isDark
-                ? AppColors.darkMutedForeground
-                : AppColors.lightMutedForeground,
+            color: Colors.white.withOpacity(0.4),
           ),
+
+          const SizedBox(width: 16),
+
+          // Slider
           Expanded(
-            child: SliderTheme(
-              data: SliderThemeData(
-                activeTrackColor: AppColors.primaryLight,
-                inactiveTrackColor: isDark
-                    ? AppColors.darkMuted
-                    : AppColors.lightMuted,
-                thumbColor: AppColors.primaryLight,
-                overlayColor: AppColors.primaryLight.withOpacity(0.2),
-                trackHeight: 4,
-                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+            child: Container(
+              height: 8,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(4),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x33000000),
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
+                ],
               ),
-              child: Slider(
-                value: widget.volume,
-                onChanged: widget.onVolumeChange,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                  child: Stack(
+                    children: [
+                      // Background track
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0x26FFFFFF), Color(0x0DFFFFFF)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          border: Border.all(
+                            color: AppColors.glassControlBorder,
+                            width: 1,
+                          ),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      // Active track
+                      FractionallySizedBox(
+                        alignment: Alignment.centerLeft,
+                        widthFactor: volume,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0x66A855F7), Color(0xFFA855F7)],
+                            ),
+                            borderRadius: BorderRadius.circular(4),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primary.withOpacity(0.4),
+                                blurRadius: 10,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      // Invisible slider for interaction
+                      Positioned.fill(
+                        child: SliderTheme(
+                          data: SliderThemeData(
+                            trackHeight: 0,
+                            thumbShape: const RoundSliderThumbShape(
+                              enabledThumbRadius: 0,
+                            ),
+                            overlayShape: const RoundSliderOverlayShape(
+                              overlayRadius: 0,
+                            ),
+                            activeTrackColor: Colors.transparent,
+                            inactiveTrackColor: Colors.transparent,
+                          ),
+                          child: Slider(
+                            value: volume,
+                            onChanged: onVolumeChange,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
-          Icon(
-            Icons.volume_up,
-            size: 20,
-            color: isDark
-                ? AppColors.darkMutedForeground
-                : AppColors.lightMutedForeground,
-          ),
+
+          const SizedBox(width: 16),
+
+          // Volume up icon
+          Icon(Icons.volume_up, size: 20, color: Colors.white.withOpacity(0.4)),
         ],
       ),
     );
