@@ -41,16 +41,6 @@ class StorageService {
     await _prefs.setDouble(AppConstants.keyVolume, volume);
   }
 
-  /// Get saved theme mode (light, dark, system)
-  String getThemeMode() {
-    return _prefs.getString(AppConstants.keyThemeMode) ?? 'system';
-  }
-
-  /// Save theme mode
-  Future<void> setThemeMode(String mode) async {
-    await _prefs.setString(AppConstants.keyThemeMode, mode);
-  }
-
   /// Get saved stream URL
   String getStreamUrl() {
     return _prefs.getString(AppConstants.keyStreamUrl) ??

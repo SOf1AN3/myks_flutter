@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../config/constants.dart';
 import '../models/video.dart';
 import '../models/radio_config.dart';
@@ -24,10 +25,17 @@ class ApiService {
       ),
     );
 
-    // Add interceptors for logging in debug mode
-    _dio.interceptors.add(
-      LogInterceptor(requestBody: true, responseBody: true, error: true),
-    );
+    // Add interceptors for logging in debug mode only
+    if (kDebugMode) {
+      _dio.interceptors.add(
+        LogInterceptor(
+          request: true,
+          requestBody: false, // Reduced logging for performance
+          responseBody: false,
+          error: true,
+        ),
+      );
+    }
   }
 
   /// Set authorization token

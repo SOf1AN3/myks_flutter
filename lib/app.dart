@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'config/theme.dart';
 import 'config/routes.dart';
-import 'providers/theme_provider.dart';
 import 'providers/radio_provider.dart';
 import 'providers/videos_provider.dart';
 import 'services/storage_service.dart';
@@ -17,43 +16,32 @@ class MyksRadioApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ThemeProvider>(
-      builder: (context, themeProvider, _) {
-        return MaterialApp(
-          title: 'Myks Radio',
-          debugShowCheckedModeBanner: false,
+    return MaterialApp(
+      title: 'Myks Radio',
+      debugShowCheckedModeBanner: false,
 
-          // Theme configuration
-          theme: AppTheme.lightTheme,
-          darkTheme: AppTheme.darkTheme,
-          themeMode: themeProvider.themeMode,
+      // Theme configuration - Fixed to dark mode
+      theme: AppTheme.darkTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.dark,
 
-          // Routes
-          initialRoute: AppRoutes.home,
-          onGenerateRoute: AppRoutes.generateRoute,
+      // Routes
+      initialRoute: AppRoutes.home,
+      onGenerateRoute: AppRoutes.generateRoute,
 
-          // Builder for system UI overlay style
-          builder: (context, child) {
-            // Update system UI based on theme
-            final isDark = Theme.of(context).brightness == Brightness.dark;
-            SystemChrome.setSystemUIOverlayStyle(
-              SystemUiOverlayStyle(
-                statusBarColor: Colors.transparent,
-                statusBarIconBrightness: isDark
-                    ? Brightness.light
-                    : Brightness.dark,
-                systemNavigationBarColor: isDark
-                    ? AppColors.darkBackground
-                    : AppColors.lightBackground,
-                systemNavigationBarIconBrightness: isDark
-                    ? Brightness.light
-                    : Brightness.dark,
-              ),
-            );
-
-            return child ?? const SizedBox.shrink();
-          },
+      // Builder for system UI overlay style
+      builder: (context, child) {
+        // Always use dark theme system UI
+        SystemChrome.setSystemUIOverlayStyle(
+          const SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness: Brightness.light,
+            systemNavigationBarColor: AppColors.darkBackground,
+            systemNavigationBarIconBrightness: Brightness.light,
+          ),
         );
+
+        return child ?? const SizedBox.shrink();
       },
     );
   }
@@ -75,11 +63,6 @@ class AppInitializer extends StatelessWidget {
 
     return MultiProvider(
       providers: [
-        // Theme Provider
-        ChangeNotifierProvider(
-          create: (_) => ThemeProvider(storage: storageService),
-        ),
-
         // Radio Provider
         ChangeNotifierProvider(
           create: (_) => RadioProvider(

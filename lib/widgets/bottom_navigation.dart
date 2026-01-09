@@ -12,50 +12,52 @@ class AppBottomNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(color: Colors.white.withOpacity(0.1), width: 1),
-        ),
-      ),
-      child: ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(
-            sigmaX: GlassEffects.blurIntensity,
-            sigmaY: GlassEffects.blurIntensity,
+    return RepaintBoundary(
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border(
+            top: BorderSide(color: Colors.white.withOpacity(0.1), width: 1),
           ),
-          child: Container(
-            decoration: BoxDecoration(color: AppColors.glassBackground),
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 16,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _NavItem(
-                      icon: Icons.home,
-                      isActive: currentIndex == 0,
-                      onTap: () => _onItemTapped(context, 0),
-                    ),
-                    _NavItem(
-                      icon: Icons.radio,
-                      isActive: currentIndex == 1,
-                      onTap: () => _onItemTapped(context, 1),
-                    ),
-                    _NavItem(
-                      icon: Icons.explore,
-                      isActive: currentIndex == 2,
-                      onTap: () => _onItemTapped(context, 2),
-                    ),
-                    _NavItem(
-                      icon: Icons.person,
-                      isActive: currentIndex == 3,
-                      onTap: () => _onItemTapped(context, 3),
-                    ),
-                  ],
+        ),
+        child: ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(
+              sigmaX: 10, // Reduced from 24 for better performance
+              sigmaY: 10,
+            ),
+            child: Container(
+              decoration: BoxDecoration(color: AppColors.glassBackground),
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 16,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _NavItem(
+                        icon: Icons.home,
+                        isActive: currentIndex == 0,
+                        onTap: () => _onItemTapped(context, 0),
+                      ),
+                      _NavItem(
+                        icon: Icons.radio,
+                        isActive: currentIndex == 1,
+                        onTap: () => _onItemTapped(context, 1),
+                      ),
+                      _NavItem(
+                        icon: Icons.explore,
+                        isActive: currentIndex == 2,
+                        onTap: () => _onItemTapped(context, 2),
+                      ),
+                      _NavItem(
+                        icon: Icons.person,
+                        isActive: currentIndex == 3,
+                        onTap: () => _onItemTapped(context, 3),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -136,7 +138,7 @@ class _NavItem extends StatelessWidget {
             duration: const Duration(milliseconds: 200),
             width: isActive ? 4 : 0,
             height: isActive ? 4 : 0,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: AppColors.primary,
               shape: BoxShape.circle,
             ),

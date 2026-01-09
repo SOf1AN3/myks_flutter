@@ -1,15 +1,18 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import '../../config/theme.dart';
 import '../../config/routes.dart';
+import '../../models/video.dart';
 import '../../providers/videos_provider.dart';
 import '../../providers/radio_provider.dart';
 import '../../widgets/bottom_navigation.dart';
-import '../../widgets/custom_app_bar.dart';
 import '../../widgets/common_widgets.dart';
 import '../../widgets/mini_player.dart';
+import '../../widgets/mesh_gradient_background.dart';
+import '../../widgets/liquid_glass_container.dart';
 
 /// Home screen with featured video and navigation
 class HomeScreen extends StatefulWidget {
@@ -59,105 +62,122 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final radioProvider = context.watch<RadioProvider>();
-    final showMiniPlayer = radioProvider.isPlaying || radioProvider.isPaused;
+    // OPTIMIZED: Use selector instead of watch to rebuild only when needed
+    final showMiniPlayer = context.select<RadioProvider, bool>(
+      (provider) => provider.isPlaying || provider.isPaused,
+    );
 
-    return Scaffold(
-      appBar: const CustomAppBar(),
-      body: SafeArea(
-        child: Stack(
-          children: [
-            SingleChildScrollView(
-              padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 20,
-                bottom: showMiniPlayer ? 100 : 20,
+    return MeshGradientBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
+          bottom: false,
+          child: Stack(
+            children: [
+              SingleChildScrollView(
+                padding: EdgeInsets.only(
+                  left: 24,
+                  right: 24,
+                  top: 40,
+                  bottom: showMiniPlayer ? 100 : 20,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Logo/Title
+                    _buildHeader()
+                        .animate()
+                        .fadeIn(duration: const Duration(milliseconds: 600))
+                        .slideY(begin: -0.2, end: 0),
+
+                    const SizedBox(height: 40),
+
+                    // Featured Video
+                    _buildFeaturedVideo()
+                        .animate()
+                        .fadeIn(
+                          duration: const Duration(milliseconds: 600),
+                          delay: const Duration(milliseconds: 200),
+                        )
+                        .scale(begin: const Offset(0.95, 0.95)),
+
+                    const SizedBox(height: 40),
+
+                    // CTA Buttons
+                    _buildCTAButtons()
+                        .animate()
+                        .fadeIn(
+                          duration: const Duration(milliseconds: 600),
+                          delay: const Duration(milliseconds: 400),
+                        )
+                        .slideY(begin: 0.2, end: 0),
+
+                    const SizedBox(height: 60),
+
+                    // Footer - Now in scroll view
+                    _buildFooter().animate().fadeIn(
+                      duration: const Duration(milliseconds: 600),
+                      delay: const Duration(milliseconds: 600),
+                    ),
+                  ],
+                ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Logo/Title
-                  _buildHeader()
-                      .animate()
-                      .fadeIn(duration: const Duration(milliseconds: 600))
-                      .slideY(begin: -0.2, end: 0),
 
-                  const SizedBox(height: 32),
-
-                  // Featured Video
-                  _buildFeaturedVideo()
-                      .animate()
-                      .fadeIn(
-                        duration: const Duration(milliseconds: 600),
-                        delay: const Duration(milliseconds: 200),
-                      )
-                      .scale(begin: const Offset(0.95, 0.95)),
-
-                  const SizedBox(height: 40),
-
-                  // CTA Buttons
-                  _buildCTAButtons()
-                      .animate()
-                      .fadeIn(
-                        duration: const Duration(milliseconds: 600),
-                        delay: const Duration(milliseconds: 400),
-                      )
-                      .slideY(begin: 0.2, end: 0),
-
-                  const SizedBox(height: 60),
-
-                  // Footer
-                  _buildFooter().animate().fadeIn(
-                    duration: const Duration(milliseconds: 600),
-                    delay: const Duration(milliseconds: 600),
-                  ),
-                ],
+              // Mini Player
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: MiniPlayer(visible: showMiniPlayer),
               ),
-            ),
-
-            // Mini Player
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: MiniPlayer(visible: showMiniPlayer),
-            ),
-          ],
+            ],
+          ),
         ),
+        bottomNavigationBar: const AppBottomNavigation(currentIndex: 0),
       ),
-      bottomNavigationBar: const AppBottomNavigation(currentIndex: 0),
     );
   }
 
   Widget _buildHeader() {
     return Column(
       children: [
-        // Radio icon with gradient
+        // Radio icon with liquid glass effect
         Container(
-          width: 80,
-          height: 80,
+          width: 96,
+          height: 96,
           decoration: BoxDecoration(
-            gradient: AppColors.violetGradient,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primaryLight.withOpacity(0.4),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
+            borderRadius: BorderRadius.circular(48),
+            boxShadow: GlassEffects.glowShadow,
           ),
-          child: const Icon(Icons.radio, color: Colors.white, size: 40),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(48),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(
+                sigmaX: 8, // Reduced from 20 for performance
+                sigmaY: 8,
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: AppColors.playButtonGradient,
+                  border: Border.all(
+                    color: const Color(0x4DFFFFFF), // rgba(255,255,255,0.3)
+                    width: 1.5,
+                  ),
+                  borderRadius: BorderRadius.circular(48),
+                ),
+                child: const Icon(Icons.radio, color: Colors.white, size: 48),
+              ),
+            ),
+          ),
         ),
 
         const SizedBox(height: 24),
 
-        // Welcome text with gradient
+        // Title text with gradient
         const GradientText(
-          text: 'Bienvenue sur MYKS',
+          text: 'MYKS Radio',
           style: TextStyle(
-            fontSize: 32,
+            fontSize: 36,
             fontWeight: FontWeight.bold,
             height: 1.2,
           ),
@@ -168,12 +188,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
         Text(
           'Votre radio en ligne 24/7',
-          style: TextStyle(
-            fontSize: 16,
-            color: Theme.of(context).brightness == Brightness.dark
-                ? AppColors.darkMutedForeground
-                : AppColors.lightMutedForeground,
-          ),
+          style: TextStyle(fontSize: 16, color: Colors.white.withOpacity(0.6)),
           textAlign: TextAlign.center,
         ),
       ],
@@ -181,18 +196,26 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildFeaturedVideo() {
-    final videosProvider = context.watch<VideosProvider>();
-    final featuredVideo = videosProvider.featuredVideo;
+    // OPTIMIZED: Use selector to rebuild only when featured video changes
+    final featuredVideo = context.select<VideosProvider, Video?>(
+      (provider) => provider.featuredVideo,
+    );
 
-    return GlassCard(
-      padding: EdgeInsets.zero,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Video Player
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            child: AspectRatio(
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(GlassEffects.radiusLarge),
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: const Color(0x1AFFFFFF), // rgba(255, 255, 255, 0.1)
+            width: 1,
+          ),
+          borderRadius: BorderRadius.circular(GlassEffects.radiusLarge),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Video Player
+            AspectRatio(
               aspectRatio: 16 / 9,
               child: _youtubeController != null && featuredVideo != null
                   ? YoutubePlayer(
@@ -204,84 +227,67 @@ class _HomeScreenState extends State<HomeScreen> {
                         handleColor: AppColors.primaryDark,
                       ),
                     )
-                  : Container(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? AppColors.darkMuted
-                          : AppColors.lightMuted,
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.play_circle_outline,
-                              size: 64,
-                              color:
-                                  Theme.of(context).brightness ==
-                                      Brightness.dark
-                                  ? AppColors.darkMutedForeground
-                                  : AppColors.lightMutedForeground,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Aucune vidéo disponible',
-                              style: TextStyle(
-                                color:
-                                    Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? AppColors.darkMutedForeground
-                                    : AppColors.lightMutedForeground,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                  : _buildVideoPlaceholder(),
             ),
-          ),
 
-          // Video info
-          if (featuredVideo != null)
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryLight.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: const Text(
-                          'FEATURED',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primaryLight,
-                          ),
-                        ),
-                      ),
-                    ],
+            // Video info inside same container
+            if (featuredVideo != null)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: const BoxDecoration(
+                  color: Color(0x08FFFFFF), // rgba(255, 255, 255, 0.03)
+                ),
+                child: Text(
+                  featuredVideo.title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    featuredVideo.title,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVideoPlaceholder() {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.darkBackgroundDeep,
+        borderRadius: BorderRadius.circular(32),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(40),
+              ),
+              child: Icon(
+                Icons.play_circle_outline,
+                size: 48,
+                color: Colors.white.withOpacity(0.5),
               ),
             ),
-        ],
+            const SizedBox(height: 16),
+            Text(
+              'Aucune vidéo disponible',
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.5),
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -289,74 +295,164 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildCTAButtons() {
     return Column(
       children: [
-        SizedBox(
-          width: double.infinity,
-          child: GradientButton(
-            text: 'Écouter la Radio',
-            icon: Icons.radio,
-            onPressed: () => Navigator.pushNamed(context, AppRoutes.radio),
-          ),
-        ),
+        // Primary: Listen to Radio (Play style)
+        _buildPrimaryCTA(),
 
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
 
-        SizedBox(
-          width: double.infinity,
-          child: GradientOutlinedButton(
-            text: 'Voir les Vidéos',
-            icon: Icons.video_library,
-            onPressed: () => Navigator.pushNamed(context, AppRoutes.videos),
-          ),
-        ),
+        // Secondary: Watch Videos (Control style)
+        _buildSecondaryCTA(),
       ],
+    );
+  }
+
+  Widget _buildPrimaryCTA() {
+    return GestureDetector(
+      onTap: () => Navigator.pushNamed(context, AppRoutes.radio),
+      child: Container(
+        height: 72,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(36),
+          boxShadow: GlassEffects.glowShadow,
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(36),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(
+              sigmaX: 10, // Reduced from 24 for performance
+              sigmaY: 10,
+            ),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: AppColors.playButtonGradient,
+                border: Border.all(color: const Color(0x4DFFFFFF), width: 1.5),
+                borderRadius: BorderRadius.circular(36),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.radio, color: Colors.white, size: 28),
+                  SizedBox(width: 12),
+                  Text(
+                    'Écouter la Radio',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSecondaryCTA() {
+    return GestureDetector(
+      onTap: () => Navigator.pushNamed(context, AppRoutes.videos),
+      child: Container(
+        height: 56,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: GlassEffects.glassShadow,
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(28),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(
+              sigmaX: GlassEffects.blurIntensityControl,
+              sigmaY: GlassEffects.blurIntensityControl,
+            ),
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppColors.glassBackground,
+                border: Border.all(color: AppColors.glassBorder, width: 1),
+                borderRadius: BorderRadius.circular(28),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.video_library,
+                    color: Colors.white.withOpacity(0.9),
+                    size: 24,
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Voir les Vidéos',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white.withOpacity(0.9),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
   Widget _buildFooter() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Column(
-      children: [
-        Divider(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
-        const SizedBox(height: 16),
-        Text(
-          '© 2024 Myks Radio. Tous droits réservés.',
-          style: TextStyle(
-            fontSize: 12,
-            color: isDark
-                ? AppColors.darkMutedForeground
-                : AppColors.lightMutedForeground,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: LiquidGlassContainer(
+        padding: const EdgeInsets.all(24),
+        showInnerGlow: true,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            _buildSocialIcon(Icons.facebook, 'Facebook'),
-            _buildSocialIcon(Icons.camera_alt, 'Instagram'),
-            _buildSocialIcon(Icons.music_note, 'Twitter'),
-            _buildSocialIcon(Icons.play_circle, 'YouTube'),
+            Text(
+              '© 2024 Myks Radio. Tous droits réservés.',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.white.withOpacity(0.6),
+                letterSpacing: 0.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 16,
+              runSpacing: 12,
+              children: [
+                _buildSocialButton(Icons.facebook, 'Facebook'),
+                _buildSocialButton(Icons.camera_alt, 'Instagram'),
+                _buildSocialButton(Icons.music_note, 'Twitter'),
+                _buildSocialButton(Icons.play_circle, 'YouTube'),
+              ],
+            ),
           ],
         ),
-      ],
+      ),
     );
   }
 
-  Widget _buildSocialIcon(IconData icon, String label) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return IconButton(
-      icon: Icon(
-        icon,
-        color: isDark
-            ? AppColors.darkMutedForeground
-            : AppColors.lightMutedForeground,
-      ),
-      tooltip: label,
-      onPressed: () {
+  Widget _buildSocialButton(IconData icon, String label) {
+    return GestureDetector(
+      onTap: () {
         // TODO: Open social links
       },
+      child: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.08),
+          border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: GlassEffects.glassShadow,
+        ),
+        child: Icon(icon, color: Colors.white.withOpacity(0.7), size: 24),
+      ),
     );
   }
 }

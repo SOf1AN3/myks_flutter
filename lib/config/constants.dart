@@ -6,7 +6,7 @@ class AppConstants {
 
   // Default Stream URL
   static const String defaultStreamUrl =
-      'http://stream.your-radio.com:8000/stream';
+      'http://global.citrus3.com:8370/stream';
 
   // API Base URL (change this to your backend URL)
   static const String apiBaseUrl = 'https://myks.vercel.app';
@@ -34,7 +34,6 @@ class AppConstants {
 
   // Storage Keys
   static const String keyVolume = 'volume';
-  static const String keyThemeMode = 'theme_mode';
   static const String keyStreamUrl = 'stream_url';
 
   // Social Links

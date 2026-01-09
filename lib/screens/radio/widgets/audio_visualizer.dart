@@ -20,7 +20,7 @@ class AudioVisualizer extends StatefulWidget {
 }
 
 class _AudioVisualizerState extends State<AudioVisualizer>
-    with TickerProviderStateMixin {
+    with SingleTickerProviderStateMixin {
   // 10 bars with predefined heights matching design.html
   // Heights: h-12, h-24, h-16, h-32, h-20, h-36, h-24, h-16, h-28, h-14
   // In pixels (1rem = 4px): 48, 96, 64, 128, 80, 144, 96, 64, 112, 56
@@ -40,54 +40,32 @@ class _AudioVisualizerState extends State<AudioVisualizer>
   static const double _barWidth = 5;
   static const double _barSpacing = 6;
 
-  late List<AnimationController> _controllers;
-  late List<Animation<double>> _animations;
+  // OPTIMIZED: Single animation controller instead of 10
+  late AnimationController _controller;
+  late List<double> _phases; // Random phases for each bar
   final math.Random _random = math.Random();
 
   @override
   void initState() {
     super.initState();
-    _initAnimations();
+    _initAnimation();
   }
 
-  void _initAnimations() {
-    _controllers = List.generate(_barCount, (index) {
-      final duration = Duration(milliseconds: 400 + _random.nextInt(400));
-      return AnimationController(vsync: this, duration: duration);
-    });
+  void _initAnimation() {
+    // Generate random phases for variety
+    _phases = List.generate(
+      _barCount,
+      (_) => _random.nextDouble() * 2 * math.pi,
+    );
 
-    _animations = List.generate(_barCount, (index) {
-      final baseHeight = _barHeights[index];
-      final minHeight = baseHeight * 0.7;
-      final maxHeight = baseHeight * 1.0;
-
-      return Tween<double>(begin: minHeight, end: maxHeight).animate(
-        CurvedAnimation(parent: _controllers[index], curve: Curves.easeInOut),
-      );
-    });
+    // Single controller for all bars
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
 
     if (widget.isPlaying) {
-      _startAnimations();
-    }
-  }
-
-  void _startAnimations() {
-    for (var i = 0; i < _controllers.length; i++) {
-      Future.delayed(Duration(milliseconds: i * 50), () {
-        if (mounted && widget.isPlaying) {
-          _controllers[i].repeat(reverse: true);
-        }
-      });
-    }
-  }
-
-  void _stopAnimations() {
-    for (var i = 0; i < _controllers.length; i++) {
-      _controllers[i].stop();
-      _controllers[i].animateTo(
-        0.7,
-        duration: const Duration(milliseconds: 300),
-      );
+      _controller.repeat();
     }
   }
 
@@ -96,45 +74,56 @@ class _AudioVisualizerState extends State<AudioVisualizer>
     super.didUpdateWidget(oldWidget);
     if (widget.isPlaying != oldWidget.isPlaying) {
       if (widget.isPlaying) {
-        _startAnimations();
+        _controller.repeat();
       } else {
-        _stopAnimations();
+        _controller.stop();
+        _controller.animateTo(0.7, duration: const Duration(milliseconds: 300));
       }
     }
   }
 
   @override
   void dispose() {
-    for (var controller in _controllers) {
-      controller.dispose();
-    }
+    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return CurvedGlassViewer(
-      height: widget.height,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: List.generate(_barCount, (index) {
-          return AnimatedBuilder(
-            animation: _animations[index],
-            builder: (context, child) {
-              return Container(
-                width: _barWidth,
-                height: _animations[index].value,
-                margin: const EdgeInsets.symmetric(horizontal: _barSpacing / 2),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(_barWidth / 2),
-                  gradient: AppColors.waveBarGradient,
-                ),
-              );
-            },
-          );
-        }),
+    return RepaintBoundary(
+      child: CurvedGlassViewer(
+        height: widget.height,
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: List.generate(_barCount, (index) {
+                // Calculate height using sine wave with unique phase
+                final phase = _phases[index];
+                final value = math.sin(_controller.value * 2 * math.pi + phase);
+                final baseHeight = _barHeights[index];
+                final animatedHeight =
+                    baseHeight *
+                    (0.7 + (value * 0.15)); // Oscillate between 70% and 85%
+
+                return Container(
+                  width: _barWidth,
+                  height: animatedHeight,
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: _barSpacing / 2,
+                  ),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(_barWidth / 2),
+                    gradient: AppColors.waveBarGradient,
+                  ),
+                );
+              }),
+            );
+          },
+        ),
       ),
     );
   }
@@ -160,49 +149,32 @@ class CompactAudioVisualizer extends StatefulWidget {
 }
 
 class _CompactAudioVisualizerState extends State<CompactAudioVisualizer>
-    with TickerProviderStateMixin {
-  late List<AnimationController> _controllers;
-  late List<Animation<double>> _animations;
+    with SingleTickerProviderStateMixin {
+  // OPTIMIZED: Single animation controller
+  late AnimationController _controller;
+  late List<double> _phases;
   final math.Random _random = math.Random();
 
   @override
   void initState() {
     super.initState();
-    _initAnimations();
+    _initAnimation();
   }
 
-  void _initAnimations() {
-    _controllers = List.generate(widget.barCount, (index) {
-      final duration = Duration(milliseconds: 200 + _random.nextInt(300));
-      return AnimationController(vsync: this, duration: duration);
-    });
+  void _initAnimation() {
+    // Generate random phases for variety
+    _phases = List.generate(
+      widget.barCount,
+      (_) => _random.nextDouble() * 2 * math.pi,
+    );
 
-    _animations = _controllers.map((controller) {
-      return Tween<double>(
-        begin: 0.3,
-        end: 1.0,
-      ).animate(CurvedAnimation(parent: controller, curve: Curves.easeInOut));
-    }).toList();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
 
     if (widget.isPlaying) {
-      _startAnimations();
-    }
-  }
-
-  void _startAnimations() {
-    for (var i = 0; i < _controllers.length; i++) {
-      Future.delayed(Duration(milliseconds: i * 30), () {
-        if (mounted && widget.isPlaying) {
-          _controllers[i].repeat(reverse: true);
-        }
-      });
-    }
-  }
-
-  void _stopAnimations() {
-    for (var controller in _controllers) {
-      controller.stop();
-      controller.animateTo(0.3, duration: const Duration(milliseconds: 200));
+      _controller.repeat();
     }
   }
 
@@ -211,44 +183,51 @@ class _CompactAudioVisualizerState extends State<CompactAudioVisualizer>
     super.didUpdateWidget(oldWidget);
     if (widget.isPlaying != oldWidget.isPlaying) {
       if (widget.isPlaying) {
-        _startAnimations();
+        _controller.repeat();
       } else {
-        _stopAnimations();
+        _controller.stop();
+        _controller.animateTo(0.3, duration: const Duration(milliseconds: 200));
       }
     }
   }
 
   @override
   void dispose() {
-    for (var controller in _controllers) {
-      controller.dispose();
-    }
+    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: widget.height,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: List.generate(widget.barCount, (index) {
-          return AnimatedBuilder(
-            animation: _animations[index],
-            builder: (context, child) {
-              return Container(
-                width: 3,
-                height: widget.height * _animations[index].value,
-                margin: const EdgeInsets.symmetric(horizontal: 1),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(1.5),
-                  color: widget.color,
-                ),
-              );
-            },
-          );
-        }),
+    return RepaintBoundary(
+      child: SizedBox(
+        height: widget.height,
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: List.generate(widget.barCount, (index) {
+                // Calculate height using sine wave with unique phase
+                final phase = _phases[index];
+                final value = math.sin(_controller.value * 2 * math.pi + phase);
+                final heightFactor =
+                    0.3 + ((value + 1) / 2) * 0.7; // Range: 0.3 to 1.0
+
+                return Container(
+                  width: 3,
+                  height: widget.height * heightFactor,
+                  margin: const EdgeInsets.symmetric(horizontal: 1),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(1.5),
+                    color: widget.color,
+                  ),
+                );
+              }),
+            );
+          },
+        ),
       ),
     );
   }

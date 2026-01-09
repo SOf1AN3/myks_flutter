@@ -3,7 +3,6 @@ import '../screens/home/home_screen.dart';
 import '../screens/radio/radio_screen.dart';
 import '../screens/videos/videos_screen.dart';
 import '../screens/about/about_screen.dart';
-import '../screens/admin/admin_screen.dart';
 
 /// App routes configuration
 class AppRoutes {
@@ -11,7 +10,6 @@ class AppRoutes {
   static const String radio = '/radio';
   static const String videos = '/videos';
   static const String about = '/about';
-  static const String admin = '/admin';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -23,8 +21,6 @@ class AppRoutes {
         return _buildPageRoute(const VideosScreen(), settings);
       case about:
         return _buildPageRoute(const AboutScreen(), settings);
-      case admin:
-        return _buildPageRoute(const AdminScreen(), settings);
       default:
         return _buildPageRoute(const HomeScreen(), settings);
     }

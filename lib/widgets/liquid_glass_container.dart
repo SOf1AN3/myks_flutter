@@ -41,34 +41,36 @@ class LiquidGlassContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: width,
-      height: height,
-      margin: margin,
-      alignment: alignment,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(borderRadius),
-        boxShadow: boxShadow ?? GlassEffects.glassShadow,
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(borderRadius),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(
-            sigmaX: blurIntensity,
-            sigmaY: blurIntensity,
-          ),
-          child: Container(
-            padding: padding,
-            decoration: BoxDecoration(
-              color: backgroundColor ?? AppColors.glassBackground,
-              borderRadius: BorderRadius.circular(borderRadius),
-              border: Border.all(
-                color: borderColor ?? AppColors.glassBorder,
-                width: 1,
-              ),
-              boxShadow: showInnerGlow ? GlassEffects.innerGlowShadow : null,
+    return RepaintBoundary(
+      child: Container(
+        width: width,
+        height: height,
+        margin: margin,
+        alignment: alignment,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(borderRadius),
+          boxShadow: boxShadow ?? GlassEffects.glassShadow,
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(borderRadius),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(
+              sigmaX: blurIntensity,
+              sigmaY: blurIntensity,
             ),
-            child: child,
+            child: Container(
+              padding: padding,
+              decoration: BoxDecoration(
+                color: backgroundColor ?? AppColors.glassBackground,
+                borderRadius: BorderRadius.circular(borderRadius),
+                border: Border.all(
+                  color: borderColor ?? AppColors.glassBorder,
+                  width: 1,
+                ),
+                boxShadow: showInnerGlow ? GlassEffects.innerGlowShadow : null,
+              ),
+              child: child,
+            ),
           ),
         ),
       ),
@@ -91,44 +93,46 @@ class LiquidControlContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x33000000),
-              blurRadius: 8,
-              offset: Offset(0, 4),
-            ),
-          ],
-        ),
-        child: ClipOval(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(
-              sigmaX: GlassEffects.blurIntensityControl,
-              sigmaY: GlassEffects.blurIntensityControl,
-            ),
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [
-                    Color(0x26FFFFFF), // rgba(255, 255, 255, 0.15)
-                    Color(0x0DFFFFFF), // rgba(255, 255, 255, 0.05)
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                border: Border.all(
-                  color: AppColors.glassControlBorder,
-                  width: 1,
-                ),
-                shape: BoxShape.circle,
+    return RepaintBoundary(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x33000000),
+                blurRadius: 8,
+                offset: Offset(0, 4),
               ),
-              child: Center(child: child),
+            ],
+          ),
+          child: ClipOval(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(
+                sigmaX: GlassEffects.blurIntensityControl,
+                sigmaY: GlassEffects.blurIntensityControl,
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [
+                      Color(0x26FFFFFF), // rgba(255, 255, 255, 0.15)
+                      Color(0x0DFFFFFF), // rgba(255, 255, 255, 0.05)
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  border: Border.all(
+                    color: AppColors.glassControlBorder,
+                    width: 1,
+                  ),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(child: child),
+              ),
             ),
           ),
         ),
@@ -152,51 +156,58 @@ class CurvedGlassViewer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(GlassEffects.radiusLarge),
-        border: Border.all(
-          color: const Color(0x1AFFFFFF), // rgba(255, 255, 255, 0.1)
-          width: 1,
+    return RepaintBoundary(
+      child: Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(GlassEffects.radiusLarge),
+          border: Border.all(
+            color: const Color(0x1AFFFFFF), // rgba(255, 255, 255, 0.1)
+            width: 1,
+          ),
         ),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(GlassEffects.radiusLarge),
-        child: Stack(
-          children: [
-            // Background
-            Container(
-              decoration: const BoxDecoration(
-                color: Color(0x08FFFFFF), // rgba(255, 255, 255, 0.03)
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(GlassEffects.radiusLarge),
+          child: Stack(
+            children: [
+              // Background
+              Container(
+                decoration: const BoxDecoration(
+                  color: Color(0x08FFFFFF), // rgba(255, 255, 255, 0.03)
+                ),
               ),
-            ),
-            // Content
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
-              child: Center(child: child),
-            ),
-            // Overlay gradient for curved glass effect
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(GlassEffects.radiusLarge),
-                  gradient: const LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Color(0x1AFFFFFF), // rgba(255, 255, 255, 0.1)
-                      Colors.transparent,
-                      Colors.transparent,
-                      Color(0x0DFFFFFF), // rgba(255, 255, 255, 0.05)
-                    ],
-                    stops: [0.0, 0.2, 0.8, 1.0],
+              // Content
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 40,
+                  horizontal: 20,
+                ),
+                child: Center(child: child),
+              ),
+              // Overlay gradient for curved glass effect
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(
+                      GlassEffects.radiusLarge,
+                    ),
+                    gradient: const LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color(0x1AFFFFFF), // rgba(255, 255, 255, 0.1)
+                        Colors.transparent,
+                        Colors.transparent,
+                        Color(0x0DFFFFFF), // rgba(255, 255, 255, 0.05)
+                      ],
+                      stops: [0.0, 0.2, 0.8, 1.0],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

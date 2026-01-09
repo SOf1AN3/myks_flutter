@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'theme_toggle.dart';
 
 /// Custom app bar with consistent styling
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
-  final bool showThemeToggle;
   final bool showBackButton;
   final List<Widget>? actions;
   final Widget? leading;
@@ -16,7 +14,6 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   const CustomAppBar({
     super.key,
     this.title = '',
-    this.showThemeToggle = true,
     this.showBackButton = false,
     this.actions,
     this.leading,
@@ -46,11 +43,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                   onPressed: () => Navigator.pop(context),
                 )
               : null),
-      actions: [
-        if (actions != null) ...actions!,
-        if (showThemeToggle) const ThemeToggle(),
-        const SizedBox(width: 8),
-      ],
+      actions: [if (actions != null) ...actions!, const SizedBox(width: 8)],
     );
   }
 
@@ -61,7 +54,6 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 /// Sliver app bar variant for scrollable screens
 class CustomSliverAppBar extends StatelessWidget {
   final String title;
-  final bool showThemeToggle;
   final List<Widget>? actions;
   final Widget? flexibleSpace;
   final double expandedHeight;
@@ -71,7 +63,6 @@ class CustomSliverAppBar extends StatelessWidget {
   const CustomSliverAppBar({
     super.key,
     this.title = '',
-    this.showThemeToggle = true,
     this.actions,
     this.flexibleSpace,
     this.expandedHeight = 120,
@@ -92,11 +83,7 @@ class CustomSliverAppBar extends StatelessWidget {
       floating: floating,
       expandedHeight: flexibleSpace != null ? expandedHeight : null,
       flexibleSpace: flexibleSpace,
-      actions: [
-        if (actions != null) ...actions!,
-        if (showThemeToggle) const ThemeToggle(),
-        const SizedBox(width: 8),
-      ],
+      actions: [if (actions != null) ...actions!, const SizedBox(width: 8)],
     );
   }
 }
