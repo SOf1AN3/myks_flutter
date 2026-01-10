@@ -22,8 +22,8 @@ class AppBottomNavigation extends StatelessWidget {
         child: ClipRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(
-              sigmaX: 10, // Reduced from 24 for better performance
-              sigmaY: 10,
+              sigmaX: 8, // Reduced from 10 for better performance
+              sigmaY: 8,
             ),
             child: Container(
               decoration: BoxDecoration(color: AppColors.glassBackground),

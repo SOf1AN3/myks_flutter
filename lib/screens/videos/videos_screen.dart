@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -5,8 +6,10 @@ import '../../config/theme.dart';
 import '../../providers/videos_provider.dart';
 import '../../providers/radio_provider.dart';
 import '../../widgets/bottom_navigation.dart';
-import '../../widgets/custom_app_bar.dart';
 import '../../widgets/mini_player.dart';
+import '../../widgets/mesh_gradient_background.dart';
+import '../../widgets/liquid_glass_container.dart';
+import '../../widgets/screen_header.dart';
 import 'widgets/video_card.dart';
 import 'widgets/video_player_modal.dart';
 
@@ -42,169 +45,158 @@ class _VideosScreenState extends State<VideosScreen> {
   Widget build(BuildContext context) {
     final videosProvider = context.watch<VideosProvider>();
     final radioProvider = context.watch<RadioProvider>();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final showMiniPlayer = radioProvider.isPlaying || radioProvider.isPaused;
 
     return Scaffold(
-      appBar: const CustomAppBar(title: 'Vidéos'),
-      body: Stack(
-        children: [
-          RefreshIndicator(
-            onRefresh: () => videosProvider.refresh(),
-            child: CustomScrollView(
-              slivers: [
-                // Header
-                SliverToBoxAdapter(child: _buildHeader(isDark)),
+      backgroundColor: Colors.transparent,
+      body: MeshGradientBackground(
+        child: SafeArea(
+          bottom: false,
+          child: Stack(
+            children: [
+              RefreshIndicator(
+                onRefresh: () => videosProvider.refresh(),
+                child: CustomScrollView(
+                  slivers: [
+                    // Header with back button
+                    SliverToBoxAdapter(
+                      child:
+                          ScreenHeader.withBack(
+                            context: context,
+                            title: 'VIDÉOS',
+                            subtitle: 'DÉCOUVREZ',
+                          ).animate().fadeIn(
+                            duration: const Duration(milliseconds: 400),
+                          ),
+                    ),
 
-                // Search bar
-                SliverToBoxAdapter(
-                  child: _buildSearchBar(videosProvider, isDark),
+                    const SliverToBoxAdapter(child: SizedBox(height: 20)),
+
+                    // Search bar
+                    SliverToBoxAdapter(
+                      child: _buildSearchBar(videosProvider)
+                          .animate()
+                          .fadeIn(
+                            duration: const Duration(milliseconds: 500),
+                            delay: const Duration(milliseconds: 100),
+                          )
+                          .slideY(begin: 0.1, end: 0),
+                    ),
+
+                    const SliverToBoxAdapter(child: SizedBox(height: 16)),
+
+                    // Results count
+                    SliverToBoxAdapter(
+                      child: _buildResultsCount(videosProvider),
+                    ),
+
+                    const SliverToBoxAdapter(child: SizedBox(height: 16)),
+
+                    // Video grid or loading/error state
+                    if (videosProvider.isLoading)
+                      _buildLoadingGrid()
+                    else if (videosProvider.error != null)
+                      SliverToBoxAdapter(
+                        child: _buildError(videosProvider.error!),
+                      )
+                    else if (videosProvider.filteredVideos.isEmpty)
+                      SliverToBoxAdapter(child: _buildEmptyState())
+                    else
+                      _buildVideoGrid(videosProvider),
+
+                    // Pagination
+                    if (videosProvider.totalPages > 1)
+                      SliverToBoxAdapter(
+                        child: _buildPagination(videosProvider),
+                      ),
+
+                    // Bottom padding for mini player
+                    SliverToBoxAdapter(
+                      child: SizedBox(height: showMiniPlayer ? 100 : 20),
+                    ),
+                  ],
                 ),
+              ),
 
-                // Results count
-                SliverToBoxAdapter(
-                  child: _buildResultsCount(videosProvider, isDark),
-                ),
-
-                // Video grid or loading/error state
-                if (videosProvider.isLoading)
-                  _buildLoadingGrid()
-                else if (videosProvider.error != null)
-                  SliverToBoxAdapter(
-                    child: _buildError(videosProvider.error!, isDark),
-                  )
-                else if (videosProvider.filteredVideos.isEmpty)
-                  SliverToBoxAdapter(child: _buildEmptyState(isDark))
-                else
-                  _buildVideoGrid(videosProvider),
-
-                // Pagination
-                if (videosProvider.totalPages > 1)
-                  SliverToBoxAdapter(
-                    child: _buildPagination(videosProvider, isDark),
-                  ),
-
-                // Bottom padding for mini player
-                SliverToBoxAdapter(
-                  child: SizedBox(height: showMiniPlayer ? 100 : 20),
-                ),
-              ],
-            ),
+              // Mini Player
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: MiniPlayer(visible: showMiniPlayer),
+              ),
+            ],
           ),
-
-          // Mini Player
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: MiniPlayer(visible: showMiniPlayer),
-          ),
-        ],
+        ),
       ),
       bottomNavigationBar: const AppBottomNavigation(currentIndex: 2),
     );
   }
 
-  Widget _buildHeader(bool isDark) {
+  Widget _buildSearchBar(VideosProvider videosProvider) {
     return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(GlassEffects.radiusMedium),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(
+            sigmaX: GlassEffects.blurIntensityControl,
+            sigmaY: GlassEffects.blurIntensityControl,
+          ),
+          child: Container(
             decoration: BoxDecoration(
-              color: Colors.red.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
+              color: AppColors.glassBackground,
+              border: Border.all(color: AppColors.glassBorder, width: 1),
+              borderRadius: BorderRadius.circular(GlassEffects.radiusMedium),
             ),
-            child: const Icon(
-              Icons.play_circle_filled,
-              color: Colors.red,
-              size: 28,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Vidéos YouTube',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: isDark
-                        ? AppColors.darkForeground
-                        : AppColors.lightForeground,
-                  ),
+            child: TextField(
+              controller: _searchController,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: 'Rechercher une vidéo...',
+                hintStyle: TextStyle(
+                  color: Colors.white.withOpacity(0.5),
+                  fontSize: 14,
                 ),
-                Text(
-                  'Découvrez notre contenu vidéo',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: isDark
-                        ? AppColors.darkMutedForeground
-                        : AppColors.lightMutedForeground,
-                  ),
+                prefixIcon: Icon(
+                  Icons.search,
+                  color: Colors.white.withOpacity(0.7),
                 ),
-              ],
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(
+                          Icons.clear,
+                          color: Colors.white.withOpacity(0.7),
+                        ),
+                        onPressed: () {
+                          _searchController.clear();
+                          videosProvider.clearSearch();
+                        },
+                      )
+                    : null,
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
+              ),
+              onChanged: (value) => videosProvider.search(value),
             ),
           ),
-        ],
-      ),
-    ).animate().fadeIn().slideY(begin: -0.1, end: 0);
-  }
-
-  Widget _buildSearchBar(VideosProvider videosProvider, bool isDark) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: TextField(
-        controller: _searchController,
-        decoration: InputDecoration(
-          hintText: 'Rechercher une vidéo...',
-          prefixIcon: const Icon(Icons.search),
-          suffixIcon: _searchController.text.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear),
-                  onPressed: () {
-                    _searchController.clear();
-                    videosProvider.clearSearch();
-                  },
-                )
-              : null,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-              color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-            ),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-              color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-            ),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.primaryLight),
-          ),
-          filled: true,
-          fillColor: (isDark ? Colors.white : Colors.black).withOpacity(0.05),
         ),
-        onChanged: (value) => videosProvider.search(value),
       ),
-    ).animate().fadeIn(delay: const Duration(milliseconds: 100));
+    );
   }
 
-  Widget _buildResultsCount(VideosProvider videosProvider, bool isDark) {
+  Widget _buildResultsCount(VideosProvider videosProvider) {
     return Padding(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Text(
         '${videosProvider.totalVideos} vidéo${videosProvider.totalVideos > 1 ? 's' : ''} trouvée${videosProvider.totalVideos > 1 ? 's' : ''}',
         style: TextStyle(
-          fontSize: 14,
-          color: isDark
-              ? AppColors.darkMutedForeground
-              : AppColors.lightMutedForeground,
+          fontSize: 12,
+          color: Colors.white.withOpacity(0.6),
+          letterSpacing: 0.5,
         ),
       ),
     );
@@ -212,7 +204,7 @@ class _VideosScreenState extends State<VideosScreen> {
 
   Widget _buildVideoGrid(VideosProvider videosProvider) {
     return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
       sliver: SliverGrid(
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
@@ -237,7 +229,7 @@ class _VideosScreenState extends State<VideosScreen> {
 
   Widget _buildLoadingGrid() {
     return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
       sliver: SliverGrid(
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
@@ -253,147 +245,189 @@ class _VideosScreenState extends State<VideosScreen> {
     );
   }
 
-  Widget _buildError(String error, bool isDark) {
+  Widget _buildError(String error) {
     return Padding(
       padding: const EdgeInsets.all(40),
-      child: Column(
-        children: [
-          Icon(
-            Icons.error_outline,
-            size: 64,
-            color: isDark
-                ? AppColors.darkMutedForeground
-                : AppColors.lightMutedForeground,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Erreur de chargement',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: isDark
-                  ? AppColors.darkForeground
-                  : AppColors.lightForeground,
+      child: LiquidGlassContainer(
+        padding: const EdgeInsets.all(32),
+        showInnerGlow: true,
+        child: Column(
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: AppColors.error.withOpacity(0.8),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            error,
-            style: TextStyle(
-              color: isDark
-                  ? AppColors.darkMutedForeground
-                  : AppColors.lightMutedForeground,
+            const SizedBox(height: 16),
+            const Text(
+              'Erreur de chargement',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
             ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          OutlinedButton.icon(
-            icon: const Icon(Icons.refresh),
-            label: const Text('Réessayer'),
-            onPressed: _loadVideos,
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              error,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.white.withOpacity(0.7),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            GestureDetector(
+              onTap: _loadVideos,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  gradient: AppColors.violetGradient,
+                  borderRadius: BorderRadius.circular(GlassEffects.radiusSmall),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.2),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.refresh, color: Colors.white, size: 20),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Réessayer',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildEmptyState(bool isDark) {
+  Widget _buildEmptyState() {
     return Padding(
       padding: const EdgeInsets.all(40),
-      child: Column(
-        children: [
-          Icon(
-            Icons.video_library_outlined,
-            size: 64,
-            color: isDark
-                ? AppColors.darkMutedForeground
-                : AppColors.lightMutedForeground,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Aucune vidéo trouvée',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: isDark
-                  ? AppColors.darkForeground
-                  : AppColors.lightForeground,
+      child: LiquidGlassContainer(
+        padding: const EdgeInsets.all(32),
+        showInnerGlow: true,
+        child: Column(
+          children: [
+            Icon(
+              Icons.video_library_outlined,
+              size: 64,
+              color: Colors.white.withOpacity(0.5),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Essayez de modifier votre recherche',
-            style: TextStyle(
-              color: isDark
-                  ? AppColors.darkMutedForeground
-                  : AppColors.lightMutedForeground,
+            const SizedBox(height: 16),
+            const Text(
+              'Aucune vidéo trouvée',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              'Essayez de modifier votre recherche',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.white.withOpacity(0.7),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildPagination(VideosProvider videosProvider, bool isDark) {
+  Widget _buildPagination(VideosProvider videosProvider) {
     return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.chevron_left),
-            onPressed: videosProvider.currentPage > 1
-                ? () => videosProvider.previousPage()
-                : null,
-          ),
-          const SizedBox(width: 16),
-          ...List.generate(
-            videosProvider.totalPages,
-            (index) => _buildPageButton(index + 1, videosProvider, isDark),
-          ),
-          const SizedBox(width: 16),
-          IconButton(
-            icon: const Icon(Icons.chevron_right),
-            onPressed: videosProvider.currentPage < videosProvider.totalPages
-                ? () => videosProvider.nextPage()
-                : null,
-          ),
-        ],
+      padding: const EdgeInsets.all(24),
+      child: LiquidGlassContainer(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            LiquidControlContainer(
+              size: 36,
+              onTap: videosProvider.currentPage > 1
+                  ? () => videosProvider.previousPage()
+                  : null,
+              child: Icon(
+                Icons.chevron_left,
+                color: videosProvider.currentPage > 1
+                    ? Colors.white
+                    : Colors.white.withOpacity(0.3),
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 16),
+            ...List.generate(
+              videosProvider.totalPages.clamp(0, 5), // Limit to 5 pages shown
+              (index) {
+                final page = index + 1;
+                return _buildPageButton(page, videosProvider);
+              },
+            ),
+            const SizedBox(width: 16),
+            LiquidControlContainer(
+              size: 36,
+              onTap: videosProvider.currentPage < videosProvider.totalPages
+                  ? () => videosProvider.nextPage()
+                  : null,
+              child: Icon(
+                Icons.chevron_right,
+                color: videosProvider.currentPage < videosProvider.totalPages
+                    ? Colors.white
+                    : Colors.white.withOpacity(0.3),
+                size: 20,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildPageButton(
-    int page,
-    VideosProvider videosProvider,
-    bool isDark,
-  ) {
+  Widget _buildPageButton(int page, VideosProvider videosProvider) {
     final isActive = page == videosProvider.currentPage;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: InkWell(
+      child: GestureDetector(
         onTap: () => videosProvider.goToPage(page),
-        borderRadius: BorderRadius.circular(8),
         child: Container(
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: isActive
-                ? AppColors.primaryLight
-                : (isDark ? Colors.white : Colors.black).withOpacity(0.05),
+            gradient: isActive ? AppColors.violetGradient : null,
+            color: isActive ? null : Colors.white.withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isActive
+                  ? Colors.white.withOpacity(0.3)
+                  : Colors.white.withOpacity(0.15),
+              width: 1,
+            ),
           ),
           child: Center(
             child: Text(
               '$page',
               style: TextStyle(
-                color: isActive
-                    ? Colors.white
-                    : (isDark
-                          ? AppColors.darkForeground
-                          : AppColors.lightForeground),
+                color: Colors.white,
                 fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                fontSize: 14,
               ),
             ),
           ),

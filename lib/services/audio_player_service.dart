@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:audio_session/audio_session.dart';
 import '../config/constants.dart';
@@ -161,9 +162,17 @@ class AudioPlayerService {
   /// Pause playback
   Future<void> pause() async {
     try {
+      debugPrint('[AudioPlayerService] Pausing playback...');
+      debugPrint('[AudioPlayerService] Current state: $_currentState');
+      debugPrint('[AudioPlayerService] Player state: ${_player.playerState}');
+
       await _player.pause();
       _updateState(RadioPlayerState.paused);
-    } catch (e) {
+
+      debugPrint('[AudioPlayerService] Pause completed successfully');
+    } catch (e, stackTrace) {
+      debugPrint('[AudioPlayerService] Error during pause: $e');
+      debugPrint('[AudioPlayerService] Stack trace: $stackTrace');
       _handleError(e.toString());
     }
   }

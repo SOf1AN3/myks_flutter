@@ -5,10 +5,14 @@ import '../config/theme.dart';
 /// A container with liquid glass effect (glassmorphism)
 ///
 /// Features:
-/// - Backdrop filter blur for glass effect
+/// - Backdrop filter blur for glass effect (can be disabled for performance)
 /// - Semi-transparent background
 /// - Subtle border and inner glow
 /// - Configurable border radius and padding
+///
+/// Performance Optimization:
+/// - Set [enableBlur] to false to simulate glass effect without BackdropFilter
+/// - Already wrapped with RepaintBoundary for optimal rendering
 class LiquidGlassContainer extends StatelessWidget {
   final Widget? child;
   final EdgeInsetsGeometry? padding;
@@ -22,6 +26,7 @@ class LiquidGlassContainer extends StatelessWidget {
   final bool showInnerGlow;
   final AlignmentGeometry? alignment;
   final List<BoxShadow>? boxShadow;
+  final bool enableBlur;
 
   const LiquidGlassContainer({
     super.key,
@@ -37,6 +42,7 @@ class LiquidGlassContainer extends StatelessWidget {
     this.showInnerGlow = false,
     this.alignment,
     this.boxShadow,
+    this.enableBlur = true,
   });
 
   @override
@@ -53,27 +59,33 @@ class LiquidGlassContainer extends StatelessWidget {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(borderRadius),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(
-              sigmaX: blurIntensity,
-              sigmaY: blurIntensity,
-            ),
-            child: Container(
-              padding: padding,
-              decoration: BoxDecoration(
-                color: backgroundColor ?? AppColors.glassBackground,
-                borderRadius: BorderRadius.circular(borderRadius),
-                border: Border.all(
-                  color: borderColor ?? AppColors.glassBorder,
-                  width: 1,
-                ),
-                boxShadow: showInnerGlow ? GlassEffects.innerGlowShadow : null,
-              ),
-              child: child,
-            ),
-          ),
+          child: enableBlur
+              ? BackdropFilter(
+                  filter: ImageFilter.blur(
+                    sigmaX: blurIntensity,
+                    sigmaY: blurIntensity,
+                  ),
+                  child: _buildGlassContent(),
+                )
+              : _buildGlassContent(),
         ),
       ),
+    );
+  }
+
+  Widget _buildGlassContent() {
+    return Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        color: backgroundColor ?? AppColors.glassBackground,
+        borderRadius: BorderRadius.circular(borderRadius),
+        border: Border.all(
+          color: borderColor ?? AppColors.glassBorder,
+          width: 1,
+        ),
+        boxShadow: showInnerGlow ? GlassEffects.innerGlowShadow : null,
+      ),
+      child: child,
     );
   }
 }

@@ -45,60 +45,67 @@ class _MiniPlayerContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return GestureDetector(
-      onTap: () {
-        final currentRoute = ModalRoute.of(context)?.settings.name;
-        if (currentRoute != AppRoutes.radio) {
-          Navigator.pushNamed(context, AppRoutes.radio);
-        }
-      },
-      child: Container(
-        margin: const EdgeInsets.all(12),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: (isDark ? Colors.black : Colors.white).withOpacity(0.8),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: (isDark ? Colors.white : Colors.black).withOpacity(
-                    0.1,
-                  ),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 20,
-                    offset: const Offset(0, -2),
-                  ),
-                ],
+    return RepaintBoundary(
+      child: GestureDetector(
+        onTap: () {
+          final currentRoute = ModalRoute.of(context)?.settings.name;
+          if (currentRoute != AppRoutes.radio) {
+            Navigator.pushNamed(context, AppRoutes.radio);
+          }
+        },
+        child: Container(
+          margin: const EdgeInsets.all(12),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(
+                sigmaX: 8, // Reduced from 10 for better performance
+                sigmaY: 8,
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Animated progress bar
-                  if (radioProvider.isPlaying) _buildProgressBar(),
-
-                  const SizedBox(height: 8),
-
-                  Row(
-                    children: [
-                      // Album art
-                      _buildAlbumArt(),
-
-                      const SizedBox(width: 12),
-
-                      // Track info
-                      Expanded(child: _buildTrackInfo(context)),
-
-                      // Controls
-                      _buildControls(context),
-                    ],
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: (isDark ? Colors.black : Colors.white).withOpacity(
+                    0.8,
                   ),
-                ],
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: (isDark ? Colors.white : Colors.black).withOpacity(
+                      0.1,
+                    ),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 20,
+                      offset: const Offset(0, -2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Animated progress bar
+                    if (radioProvider.isPlaying) _buildProgressBar(),
+
+                    const SizedBox(height: 8),
+
+                    Row(
+                      children: [
+                        // Album art
+                        _buildAlbumArt(),
+
+                        const SizedBox(width: 12),
+
+                        // Track info
+                        Expanded(child: _buildTrackInfo(context)),
+
+                        // Controls
+                        _buildControls(context),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

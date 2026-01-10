@@ -92,79 +92,84 @@ class _VolumeSlider extends StatelessWidget {
 
           // Slider
           Expanded(
-            child: Container(
-              height: 8,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(4),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x33000000),
-                    blurRadius: 4,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                  child: Stack(
-                    children: [
-                      // Background track
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0x26FFFFFF), Color(0x0DFFFFFF)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          border: Border.all(
-                            color: AppColors.glassControlBorder,
-                            width: 1,
-                          ),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                      // Active track
-                      FractionallySizedBox(
-                        alignment: Alignment.centerLeft,
-                        widthFactor: volume,
-                        child: Container(
+            child: RepaintBoundary(
+              child: Container(
+                height: 8,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(4),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x33000000),
+                      blurRadius: 4,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(
+                      sigmaX: 8, // Reduced from 12 for better performance
+                      sigmaY: 8,
+                    ),
+                    child: Stack(
+                      children: [
+                        // Background track
+                        Container(
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
-                              colors: [Color(0x66A855F7), Color(0xFFA855F7)],
+                              colors: [Color(0x26FFFFFF), Color(0x0DFFFFFF)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            border: Border.all(
+                              color: AppColors.glassControlBorder,
+                              width: 1,
                             ),
                             borderRadius: BorderRadius.circular(4),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.primary.withOpacity(0.4),
-                                blurRadius: 10,
+                          ),
+                        ),
+                        // Active track
+                        FractionallySizedBox(
+                          alignment: Alignment.centerLeft,
+                          widthFactor: volume,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0x66A855F7), Color(0xFFA855F7)],
                               ),
-                            ],
+                              borderRadius: BorderRadius.circular(4),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.primary.withOpacity(0.4),
+                                  blurRadius: 10,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                      // Invisible slider for interaction
-                      Positioned.fill(
-                        child: SliderTheme(
-                          data: SliderThemeData(
-                            trackHeight: 0,
-                            thumbShape: const RoundSliderThumbShape(
-                              enabledThumbRadius: 0,
+                        // Invisible slider for interaction
+                        Positioned.fill(
+                          child: SliderTheme(
+                            data: SliderThemeData(
+                              trackHeight: 0,
+                              thumbShape: const RoundSliderThumbShape(
+                                enabledThumbRadius: 0,
+                              ),
+                              overlayShape: const RoundSliderOverlayShape(
+                                overlayRadius: 0,
+                              ),
+                              activeTrackColor: Colors.transparent,
+                              inactiveTrackColor: Colors.transparent,
                             ),
-                            overlayShape: const RoundSliderOverlayShape(
-                              overlayRadius: 0,
+                            child: Slider(
+                              value: volume,
+                              onChanged: onVolumeChange,
                             ),
-                            activeTrackColor: Colors.transparent,
-                            inactiveTrackColor: Colors.transparent,
-                          ),
-                          child: Slider(
-                            value: volume,
-                            onChanged: onVolumeChange,
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),

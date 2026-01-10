@@ -6,6 +6,7 @@ import '../../providers/radio_provider.dart';
 import '../../widgets/bottom_navigation.dart';
 import '../../widgets/mesh_gradient_background.dart';
 import '../../widgets/liquid_glass_container.dart';
+import '../../widgets/screen_header.dart';
 import 'widgets/audio_visualizer.dart';
 import 'widgets/player_controls.dart';
 import 'widgets/live_community_panel.dart';
@@ -34,7 +35,21 @@ class RadioScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     // Header with back and menu buttons
-                    _buildHeader(context).animate().fadeIn(
+                    ScreenHeader.withMenu(
+                      context: context,
+                      title: 'MYKS Radio',
+                      subtitle: 'STREAMING NOW',
+                      leading: LiquidControlContainer(
+                        size: 40,
+                        onTap: () => Navigator.of(context).pop(),
+                        child: const Icon(
+                          Icons.keyboard_arrow_down,
+                          size: 24,
+                          color: Colors.white,
+                        ),
+                      ),
+                      onMenuTap: () => _showMenu(context),
+                    ).animate().fadeIn(
                       duration: const Duration(milliseconds: 400),
                     ),
 
@@ -131,58 +146,6 @@ class RadioScreen extends StatelessWidget {
         ),
       ),
       bottomNavigationBar: const AppBottomNavigation(currentIndex: 1),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          // Back button
-          LiquidControlContainer(
-            size: 40,
-            onTap: () => Navigator.of(context).pop(),
-            child: const Icon(
-              Icons.keyboard_arrow_down,
-              size: 24,
-              color: Colors.white,
-            ),
-          ),
-
-          // Title
-          Column(
-            children: [
-              Text(
-                'STREAMING NOW',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2,
-                  color: Colors.white.withOpacity(0.4),
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'MYKS Radio',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white.withOpacity(0.9),
-                ),
-              ),
-            ],
-          ),
-
-          // Menu button
-          LiquidControlContainer(
-            size: 40,
-            onTap: () => _showMenu(context),
-            child: const Icon(Icons.more_horiz, size: 24, color: Colors.white),
-          ),
-        ],
-      ),
     );
   }
 

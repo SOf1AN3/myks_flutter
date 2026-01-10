@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../config/theme.dart';
 import '../../config/routes.dart';
+import '../../config/constants.dart';
 import '../../models/video.dart';
 import '../../providers/videos_provider.dart';
 import '../../providers/radio_provider.dart';
@@ -142,30 +144,32 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       children: [
         // Radio icon with liquid glass effect
-        Container(
-          width: 96,
-          height: 96,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(48),
-            boxShadow: GlassEffects.glowShadow,
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(48),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(
-                sigmaX: 8, // Reduced from 20 for performance
-                sigmaY: 8,
-              ),
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: AppColors.playButtonGradient,
-                  border: Border.all(
-                    color: const Color(0x4DFFFFFF), // rgba(255,255,255,0.3)
-                    width: 1.5,
-                  ),
-                  borderRadius: BorderRadius.circular(48),
+        RepaintBoundary(
+          child: Container(
+            width: 96,
+            height: 96,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(48),
+              boxShadow: GlassEffects.glowShadow,
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(48),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(
+                  sigmaX: 6, // Reduced from 8 for better performance
+                  sigmaY: 6,
                 ),
-                child: const Icon(Icons.radio, color: Colors.white, size: 48),
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: AppColors.playButtonGradient,
+                    border: Border.all(
+                      color: const Color(0x4DFFFFFF), // rgba(255,255,255,0.3)
+                      width: 1.5,
+                    ),
+                    borderRadius: BorderRadius.circular(48),
+                  ),
+                  child: const Icon(Icons.radio, color: Colors.white, size: 48),
+                ),
               ),
             ),
           ),
@@ -307,43 +311,48 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildPrimaryCTA() {
-    return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, AppRoutes.radio),
-      child: Container(
-        height: 72,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(36),
-          boxShadow: GlassEffects.glowShadow,
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(36),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(
-              sigmaX: 10, // Reduced from 24 for performance
-              sigmaY: 10,
-            ),
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: AppColors.playButtonGradient,
-                border: Border.all(color: const Color(0x4DFFFFFF), width: 1.5),
-                borderRadius: BorderRadius.circular(36),
+    return RepaintBoundary(
+      child: GestureDetector(
+        onTap: () => Navigator.pushNamed(context, AppRoutes.radio),
+        child: Container(
+          height: 72,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(36),
+            boxShadow: GlassEffects.glowShadow,
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(36),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(
+                sigmaX: 8, // Reduced from 10 for performance
+                sigmaY: 8,
               ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.radio, color: Colors.white, size: 28),
-                  SizedBox(width: 12),
-                  Text(
-                    'Écouter la Radio',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                      letterSpacing: 0.5,
-                    ),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: AppColors.playButtonGradient,
+                  border: Border.all(
+                    color: const Color(0x4DFFFFFF),
+                    width: 1.5,
                   ),
-                ],
+                  borderRadius: BorderRadius.circular(36),
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.radio, color: Colors.white, size: 28),
+                    SizedBox(width: 12),
+                    Text(
+                      'Écouter la Radio',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -353,46 +362,49 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildSecondaryCTA() {
-    return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, AppRoutes.videos),
-      child: Container(
-        height: 56,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(28),
-          boxShadow: GlassEffects.glassShadow,
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(28),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(
-              sigmaX: GlassEffects.blurIntensityControl,
-              sigmaY: GlassEffects.blurIntensityControl,
-            ),
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.glassBackground,
-                border: Border.all(color: AppColors.glassBorder, width: 1),
-                borderRadius: BorderRadius.circular(28),
+    return RepaintBoundary(
+      child: GestureDetector(
+        onTap: () => Navigator.pushNamed(context, AppRoutes.videos),
+        child: Container(
+          height: 56,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: GlassEffects.glassShadow,
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(28),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(
+                sigmaX:
+                    8, // Reduced from GlassEffects.blurIntensityControl (16) for performance
+                sigmaY: 8,
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.video_library,
-                    color: Colors.white.withOpacity(0.9),
-                    size: 24,
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    'Voir les Vidéos',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: AppColors.glassBackground,
+                  border: Border.all(color: AppColors.glassBorder, width: 1),
+                  borderRadius: BorderRadius.circular(28),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.video_library,
                       color: Colors.white.withOpacity(0.9),
+                      size: 24,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 10),
+                    Text(
+                      'Voir les Vidéos',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white.withOpacity(0.9),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -425,10 +437,26 @@ class _HomeScreenState extends State<HomeScreen> {
               spacing: 16,
               runSpacing: 12,
               children: [
-                _buildSocialButton(Icons.facebook, 'Facebook'),
-                _buildSocialButton(Icons.camera_alt, 'Instagram'),
-                _buildSocialButton(Icons.music_note, 'Twitter'),
-                _buildSocialButton(Icons.play_circle, 'YouTube'),
+                _buildSocialButton(
+                  Icons.facebook,
+                  'Facebook',
+                  AppConstants.facebookUrl,
+                ),
+                _buildSocialButton(
+                  Icons.camera_alt,
+                  'Instagram',
+                  AppConstants.instagramUrl,
+                ),
+                _buildSocialButton(
+                  Icons.music_note,
+                  'Twitter',
+                  AppConstants.twitterUrl,
+                ),
+                _buildSocialButton(
+                  Icons.play_circle,
+                  'YouTube',
+                  AppConstants.youtubeUrl,
+                ),
               ],
             ),
           ],
@@ -437,11 +465,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildSocialButton(IconData icon, String label) {
+  Widget _buildSocialButton(IconData icon, String label, String url) {
     return GestureDetector(
-      onTap: () {
-        // TODO: Open social links
-      },
+      onTap: () => _launchUrl(url),
       child: Container(
         width: 48,
         height: 48,
@@ -454,5 +480,12 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Icon(icon, color: Colors.white.withOpacity(0.7), size: 24),
       ),
     );
+  }
+
+  Future<void> _launchUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 }
