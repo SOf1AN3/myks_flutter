@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
 
@@ -125,28 +124,16 @@ class _LiquidButtonState extends State<LiquidButton>
         width: widget.size,
         height: widget.size,
         decoration: BoxDecoration(
+          // PERFORMANCE: Removed BackdropFilter, using static gradient
+          gradient: AppColors.playButtonGradient,
           shape: BoxShape.circle,
+          border: Border.all(
+            color: const Color(0x4DFFFFFF), // rgba(255, 255, 255, 0.3)
+            width: 1,
+          ),
           boxShadow: GlassEffects.glowShadow,
         ),
-        child: ClipOval(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(
-              sigmaX: 8, // Reduced from 10 for better performance
-              sigmaY: 8,
-            ),
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: AppColors.playButtonGradient,
-                border: Border.all(
-                  color: const Color(0x4DFFFFFF), // rgba(255, 255, 255, 0.3)
-                  width: 1,
-                ),
-                shape: BoxShape.circle,
-              ),
-              child: Center(child: widget.child),
-            ),
-          ),
-        ),
+        child: Center(child: widget.child),
       ),
     );
   }
@@ -157,7 +144,17 @@ class _LiquidButtonState extends State<LiquidButton>
         width: widget.size,
         height: widget.size,
         decoration: BoxDecoration(
+          // PERFORMANCE: Removed BackdropFilter, using static gradient
+          gradient: const LinearGradient(
+            colors: [
+              Color(0x26FFFFFF), // rgba(255, 255, 255, 0.15)
+              Color(0x0DFFFFFF), // rgba(255, 255, 255, 0.05)
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
           shape: BoxShape.circle,
+          border: Border.all(color: AppColors.glassControlBorder, width: 1),
           boxShadow: const [
             BoxShadow(
               color: Color(0x33000000),
@@ -166,33 +163,7 @@ class _LiquidButtonState extends State<LiquidButton>
             ),
           ],
         ),
-        child: ClipOval(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(
-              sigmaX:
-                  8, // Reduced from GlassEffects.blurIntensityControl (16) for performance
-              sigmaY: 8,
-            ),
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [
-                    Color(0x26FFFFFF), // rgba(255, 255, 255, 0.15)
-                    Color(0x0DFFFFFF), // rgba(255, 255, 255, 0.05)
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                border: Border.all(
-                  color: AppColors.glassControlBorder,
-                  width: 1,
-                ),
-                shape: BoxShape.circle,
-              ),
-              child: Center(child: widget.child),
-            ),
-          ),
-        ),
+        child: Center(child: widget.child),
       ),
     );
   }

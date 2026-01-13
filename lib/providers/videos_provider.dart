@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../models/video.dart';
 import '../services/api_service.dart';
@@ -8,6 +9,10 @@ import '../config/constants.dart';
 class VideosProvider extends ChangeNotifier {
   final ApiService _api;
   final StorageService _storage;
+
+  // Debouncing for search
+  Timer? _debounceTimer;
+  static const _debounceDuration = Duration(milliseconds: 500);
 
   // State
   List<Video> _videos = [];
@@ -34,17 +39,45 @@ class VideosProvider extends ChangeNotifier {
   bool _hasMore = true;
   bool get hasMore => _hasMore;
 
+  // Cached computed values to avoid recalculation on every access
+  List<Video>? _cachedPageVideos;
+  int? _cachedPage;
+  int? _cachedFilteredLength;
+
   int get totalVideos => _filteredVideos.length;
   int get totalPages => (totalVideos / AppConstants.videosPerPage).ceil();
 
   List<Video> get currentPageVideos {
+    // Return cached result if page and filtered videos haven't changed
+    if (_cachedPage == _currentPage &&
+        _cachedFilteredLength == _filteredVideos.length &&
+        _cachedPageVideos != null) {
+      return _cachedPageVideos!;
+    }
+
+    // Compute and cache
     final startIndex = (_currentPage - 1) * AppConstants.videosPerPage;
     final endIndex = startIndex + AppConstants.videosPerPage;
-    if (startIndex >= _filteredVideos.length) return [];
-    return _filteredVideos.sublist(
-      startIndex,
-      endIndex > _filteredVideos.length ? _filteredVideos.length : endIndex,
-    );
+
+    if (startIndex >= _filteredVideos.length) {
+      _cachedPageVideos = const [];
+    } else {
+      _cachedPageVideos = _filteredVideos.sublist(
+        startIndex,
+        endIndex > _filteredVideos.length ? _filteredVideos.length : endIndex,
+      );
+    }
+
+    _cachedPage = _currentPage;
+    _cachedFilteredLength = _filteredVideos.length;
+    return _cachedPageVideos!;
+  }
+
+  /// Invalidate the page cache when filtered videos or page changes
+  void _invalidatePageCache() {
+    _cachedPageVideos = null;
+    _cachedPage = null;
+    _cachedFilteredLength = null;
   }
 
   VideosProvider({required ApiService api, required StorageService storage})
@@ -87,6 +120,10 @@ class VideosProvider extends ChangeNotifier {
       _videos = videos;
       _applySearch();
       await _storage.cacheVideos(videos);
+
+      // Batch state updates with single notification
+      _isLoading = false;
+      notifyListeners();
     } catch (e) {
       _error = e.toString();
       // Fall back to cached data
@@ -97,7 +134,8 @@ class VideosProvider extends ChangeNotifier {
         _videos = cached;
         _applySearch();
       }
-    } finally {
+
+      // Batch state updates with single notification
       _isLoading = false;
       notifyListeners();
     }
@@ -126,32 +164,54 @@ class VideosProvider extends ChangeNotifier {
     }
   }
 
-  /// Search videos by query
+  /// Search videos by query with debouncing
   void search(String query) {
-    _searchQuery = query.toLowerCase().trim();
-    _currentPage = 1;
-    _applySearch();
-    notifyListeners();
+    final trimmedQuery = query.toLowerCase().trim();
+
+    // Cancel previous timer if it exists
+    _debounceTimer?.cancel();
+
+    // Only debounce if query is not empty (immediate response when clearing)
+    if (trimmedQuery.isEmpty) {
+      _searchQuery = trimmedQuery;
+      _currentPage = 1;
+      _applySearch();
+      notifyListeners();
+      return;
+    }
+
+    // Debounce for non-empty queries to avoid notifications on every keystroke
+    _debounceTimer = Timer(_debounceDuration, () {
+      _searchQuery = trimmedQuery;
+      _currentPage = 1;
+      _applySearch();
+      notifyListeners();
+    });
   }
 
   /// Apply current search filter
   void _applySearch() {
     if (_searchQuery.isEmpty) {
-      _filteredVideos = List.from(_videos);
+      // OPTIMIZED: Reference same list instead of copying
+      _filteredVideos = _videos;
     } else {
+      // OPTIMIZED: Direct filtering without intermediate copies
       _filteredVideos = _videos.where((video) {
         return video.title.toLowerCase().contains(_searchQuery) ||
             video.description.toLowerCase().contains(_searchQuery);
       }).toList();
     }
     _hasMore = _filteredVideos.length > AppConstants.videosPerPage;
+    _invalidatePageCache();
   }
 
   /// Clear search
   void clearSearch() {
     _searchQuery = '';
     _currentPage = 1;
-    _filteredVideos = List.from(_videos);
+    // OPTIMIZED: Reference same list instead of copying
+    _filteredVideos = _videos;
+    _invalidatePageCache();
     notifyListeners();
   }
 
@@ -159,6 +219,7 @@ class VideosProvider extends ChangeNotifier {
   void goToPage(int page) {
     if (page < 1 || page > totalPages) return;
     _currentPage = page;
+    _invalidatePageCache();
     notifyListeners();
   }
 
@@ -166,6 +227,7 @@ class VideosProvider extends ChangeNotifier {
   void nextPage() {
     if (_currentPage < totalPages) {
       _currentPage++;
+      _invalidatePageCache();
       notifyListeners();
     }
   }
@@ -174,6 +236,7 @@ class VideosProvider extends ChangeNotifier {
   void previousPage() {
     if (_currentPage > 1) {
       _currentPage--;
+      _invalidatePageCache();
       notifyListeners();
     }
   }
@@ -202,5 +265,11 @@ class VideosProvider extends ChangeNotifier {
     } catch (e) {
       return null;
     }
+  }
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    super.dispose();
   }
 }

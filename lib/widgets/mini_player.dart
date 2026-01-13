@@ -1,7 +1,7 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../providers/radio_provider.dart';
 import '../config/theme.dart';
 import '../config/routes.dart';
@@ -14,32 +14,85 @@ class MiniPlayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final radioProvider = context.watch<RadioProvider>();
-
-    // Don't show if not playing or paused
-    final shouldShow =
-        visible &&
-        (radioProvider.isPlaying ||
-            radioProvider.isPaused ||
-            radioProvider.isLoading);
-
-    return AnimatedSlide(
-      offset: shouldShow ? Offset.zero : const Offset(0, 1),
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOutCubic,
-      child: AnimatedOpacity(
-        opacity: shouldShow ? 1.0 : 0.0,
-        duration: const Duration(milliseconds: 200),
-        child: _MiniPlayerContent(radioProvider: radioProvider),
+    // OPTIMIZED: Use Selector to rebuild only when specific properties change
+    return Selector<RadioProvider, _MiniPlayerState>(
+      selector: (context, provider) => _MiniPlayerState(
+        isPlaying: provider.isPlaying,
+        isPaused: provider.isPaused,
+        isLoading: provider.isLoading,
+        currentTitle: provider.currentTitle,
+        currentArtist: provider.currentArtist,
+        currentCover: provider.currentCover,
+        volume: provider.volume,
       ),
+      builder: (context, state, child) {
+        // Don't show if not playing or paused
+        final shouldShow =
+            visible && (state.isPlaying || state.isPaused || state.isLoading);
+
+        return AnimatedSlide(
+          offset: shouldShow ? Offset.zero : const Offset(0, 1),
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOutCubic,
+          child: AnimatedOpacity(
+            opacity: shouldShow ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 200),
+            child: _MiniPlayerContent(state: state),
+          ),
+        );
+      },
     );
   }
 }
 
-class _MiniPlayerContent extends StatelessWidget {
-  final RadioProvider radioProvider;
+/// State class for MiniPlayer to optimize rebuilds
+class _MiniPlayerState {
+  final bool isPlaying;
+  final bool isPaused;
+  final bool isLoading;
+  final String currentTitle;
+  final String currentArtist;
+  final String? currentCover;
+  final double volume;
 
-  const _MiniPlayerContent({required this.radioProvider});
+  const _MiniPlayerState({
+    required this.isPlaying,
+    required this.isPaused,
+    required this.isLoading,
+    required this.currentTitle,
+    required this.currentArtist,
+    required this.currentCover,
+    required this.volume,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is _MiniPlayerState &&
+          runtimeType == other.runtimeType &&
+          isPlaying == other.isPlaying &&
+          isPaused == other.isPaused &&
+          isLoading == other.isLoading &&
+          currentTitle == other.currentTitle &&
+          currentArtist == other.currentArtist &&
+          currentCover == other.currentCover &&
+          volume == other.volume;
+
+  @override
+  int get hashCode =>
+      isPlaying.hashCode ^
+      isPaused.hashCode ^
+      isLoading.hashCode ^
+      currentTitle.hashCode ^
+      currentArtist.hashCode ^
+      currentCover.hashCode ^
+      volume.hashCode;
+}
+
+class _MiniPlayerContent extends StatelessWidget {
+  final _MiniPlayerState state;
+
+  const _MiniPlayerContent({required this.state});
 
   @override
   Widget build(BuildContext context) {
@@ -55,59 +108,45 @@ class _MiniPlayerContent extends StatelessWidget {
         },
         child: Container(
           margin: const EdgeInsets.all(12),
-          child: ClipRRect(
+          // PERFORMANCE: Removed BackdropFilter, using static glass effect
+          decoration: BoxDecoration(
+            color: (isDark ? Colors.black : Colors.white).withOpacity(0.8),
             borderRadius: BorderRadius.circular(16),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(
-                sigmaX: 8, // Reduced from 10 for better performance
-                sigmaY: 8,
-              ),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: (isDark ? Colors.black : Colors.white).withOpacity(
-                    0.8,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: (isDark ? Colors.white : Colors.black).withOpacity(
-                      0.1,
-                    ),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 20,
-                      offset: const Offset(0, -2),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Animated progress bar
-                    if (radioProvider.isPlaying) _buildProgressBar(),
-
-                    const SizedBox(height: 8),
-
-                    Row(
-                      children: [
-                        // Album art
-                        _buildAlbumArt(),
-
-                        const SizedBox(width: 12),
-
-                        // Track info
-                        Expanded(child: _buildTrackInfo(context)),
-
-                        // Controls
-                        _buildControls(context),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+            border: Border.all(
+              color: (isDark ? Colors.white : Colors.black).withOpacity(0.1),
             ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 20,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Animated progress bar
+              if (state.isPlaying) _buildProgressBar(),
+
+              const SizedBox(height: 8),
+
+              Row(
+                children: [
+                  // Album art
+                  _buildAlbumArt(),
+
+                  const SizedBox(width: 12),
+
+                  // Track info
+                  Expanded(child: _buildTrackInfo(context)),
+
+                  // Controls
+                  _buildControls(context),
+                ],
+              ),
+            ],
           ),
         ),
       ),
@@ -115,21 +154,26 @@ class _MiniPlayerContent extends StatelessWidget {
   }
 
   Widget _buildProgressBar() {
-    return SizedBox(
-          height: 3,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(2),
-            child: const LinearProgressIndicator(
-              backgroundColor: Colors.transparent,
-              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryLight),
-            ),
-          ),
-        )
-        .animate(onPlay: (controller) => controller.repeat())
-        .shimmer(
-          duration: const Duration(seconds: 2),
-          color: AppColors.primaryDark.withOpacity(0.5),
-        );
+    return RepaintBoundary(
+      child:
+          SizedBox(
+                height: 3,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(2),
+                  child: const LinearProgressIndicator(
+                    backgroundColor: Colors.transparent,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      AppColors.primaryLight,
+                    ),
+                  ),
+                ),
+              )
+              .animate(onPlay: (controller) => controller.repeat())
+              .shimmer(
+                duration: const Duration(seconds: 2),
+                color: AppColors.primaryDark.withOpacity(0.5),
+              ),
+    );
   }
 
   Widget _buildAlbumArt() {
@@ -142,11 +186,17 @@ class _MiniPlayerContent extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
-        child: radioProvider.currentCover != null
-            ? Image.network(
-                radioProvider.currentCover!,
+        child: state.currentCover != null
+            // OPTIMIZED: Use CachedNetworkImage instead of Image.network with size constraints
+            ? CachedNetworkImage(
+                imageUrl: state.currentCover!,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _buildPlaceholder(),
+                maxWidthDiskCache: 96,
+                maxHeightDiskCache: 96,
+                memCacheWidth: 96,
+                memCacheHeight: 96,
+                placeholder: (context, url) => _buildPlaceholder(),
+                errorWidget: (context, url, error) => _buildPlaceholder(),
               )
             : _buildPlaceholder(),
       ),
@@ -169,32 +219,35 @@ class _MiniPlayerContent extends StatelessWidget {
       children: [
         Row(
           children: [
-            if (radioProvider.isPlaying)
-              Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    margin: const EdgeInsets.only(right: 8),
-                    decoration: BoxDecoration(
-                      color: AppColors.live,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: const Text(
-                      'LIVE',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 9,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  )
-                  .animate(onPlay: (c) => c.repeat(reverse: true))
-                  .fade(duration: const Duration(seconds: 1)),
+            if (state.isPlaying)
+              RepaintBoundary(
+                child:
+                    Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          margin: const EdgeInsets.only(right: 8),
+                          decoration: BoxDecoration(
+                            color: AppColors.live,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'LIVE',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        )
+                        .animate(onPlay: (c) => c.repeat(reverse: true))
+                        .fade(duration: const Duration(seconds: 1)),
+              ),
 
             Expanded(
               child: Text(
-                radioProvider.currentTitle,
+                state.currentTitle,
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 14,
@@ -210,7 +263,7 @@ class _MiniPlayerContent extends StatelessWidget {
         ),
         const SizedBox(height: 2),
         Text(
-          radioProvider.currentArtist,
+          state.currentArtist,
           style: TextStyle(
             fontSize: 12,
             color: isDark
@@ -231,12 +284,13 @@ class _MiniPlayerContent extends StatelessWidget {
         // Volume button (optional popup)
         IconButton(
           icon: Icon(
-            radioProvider.volume == 0 ? Icons.volume_off : Icons.volume_up,
+            state.volume == 0 ? Icons.volume_off : Icons.volume_up,
             size: 20,
           ),
           onPressed: () {
+            final radioProvider = context.read<RadioProvider>();
             // Toggle mute
-            if (radioProvider.volume > 0) {
+            if (state.volume > 0) {
               radioProvider.setVolume(0);
             } else {
               radioProvider.setVolume(0.8);
@@ -255,7 +309,7 @@ class _MiniPlayerContent extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
           ),
           child: IconButton(
-            icon: radioProvider.isLoading
+            icon: state.isLoading
                 ? const SizedBox(
                     width: 20,
                     height: 20,
@@ -265,13 +319,16 @@ class _MiniPlayerContent extends StatelessWidget {
                     ),
                   )
                 : Icon(
-                    radioProvider.isPlaying ? Icons.pause : Icons.play_arrow,
+                    state.isPlaying ? Icons.pause : Icons.play_arrow,
                     color: Colors.white,
                     size: 24,
                   ),
-            onPressed: radioProvider.isLoading
+            onPressed: state.isLoading
                 ? null
-                : () => radioProvider.togglePlayPause(),
+                : () {
+                    final radioProvider = context.read<RadioProvider>();
+                    radioProvider.togglePlayPause();
+                  },
             padding: EdgeInsets.zero,
           ),
         ),

@@ -22,6 +22,13 @@ class VideosScreen extends StatefulWidget {
 }
 
 class _VideosScreenState extends State<VideosScreen> {
+  // Animation configuration constants
+  static const _headerFadeDuration = Duration(milliseconds: 400);
+  static const _searchBarFadeDuration = Duration(milliseconds: 500);
+  static const _searchBarFadeDelay = Duration(milliseconds: 100);
+  static const _cardFadeDuration = Duration(milliseconds: 400);
+  static const _scaleBegin = Offset(0.95, 0.95);
+
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -43,9 +50,11 @@ class _VideosScreenState extends State<VideosScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // OPTIMIZED: Use select to rebuild only when specific properties change
     final videosProvider = context.watch<VideosProvider>();
-    final radioProvider = context.watch<RadioProvider>();
-    final showMiniPlayer = radioProvider.isPlaying || radioProvider.isPaused;
+    final showMiniPlayer = context.select<RadioProvider, bool>(
+      (provider) => provider.isPlaying || provider.isPaused,
+    );
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -60,14 +69,11 @@ class _VideosScreenState extends State<VideosScreen> {
                   slivers: [
                     // Header with back button
                     SliverToBoxAdapter(
-                      child:
-                          ScreenHeader.withBack(
-                            context: context,
-                            title: 'VIDÉOS',
-                            subtitle: 'DÉCOUVREZ',
-                          ).animate().fadeIn(
-                            duration: const Duration(milliseconds: 400),
-                          ),
+                      child: ScreenHeader.withBack(
+                        context: context,
+                        title: 'VIDÉOS',
+                        subtitle: 'DÉCOUVREZ',
+                      ).animate().fadeIn(duration: _headerFadeDuration),
                     ),
 
                     const SliverToBoxAdapter(child: SizedBox(height: 20)),
@@ -77,8 +83,8 @@ class _VideosScreenState extends State<VideosScreen> {
                       child: _buildSearchBar(videosProvider)
                           .animate()
                           .fadeIn(
-                            duration: const Duration(milliseconds: 500),
-                            delay: const Duration(milliseconds: 100),
+                            duration: _searchBarFadeDuration,
+                            delay: _searchBarFadeDelay,
                           )
                           .slideY(begin: 0.1, end: 0),
                     ),
@@ -136,53 +142,45 @@ class _VideosScreenState extends State<VideosScreen> {
   Widget _buildSearchBar(VideosProvider videosProvider) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(GlassEffects.radiusMedium),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(
-            sigmaX: GlassEffects.blurIntensityControl,
-            sigmaY: GlassEffects.blurIntensityControl,
-          ),
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppColors.glassBackground,
-              border: Border.all(color: AppColors.glassBorder, width: 1),
-              borderRadius: BorderRadius.circular(GlassEffects.radiusMedium),
+      child: Container(
+        // PERFORMANCE: Removed BackdropFilter, using static glass color
+        decoration: BoxDecoration(
+          color: AppColors.glassBackground,
+          border: Border.all(color: AppColors.glassBorder, width: 1),
+          borderRadius: BorderRadius.circular(GlassEffects.radiusMedium),
+        ),
+        child: TextField(
+          controller: _searchController,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            hintText: 'Rechercher une vidéo...',
+            hintStyle: TextStyle(
+              color: Colors.white.withOpacity(0.5),
+              fontSize: 14,
             ),
-            child: TextField(
-              controller: _searchController,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                hintText: 'Rechercher une vidéo...',
-                hintStyle: TextStyle(
-                  color: Colors.white.withOpacity(0.5),
-                  fontSize: 14,
-                ),
-                prefixIcon: Icon(
-                  Icons.search,
-                  color: Colors.white.withOpacity(0.7),
-                ),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: Icon(
-                          Icons.clear,
-                          color: Colors.white.withOpacity(0.7),
-                        ),
-                        onPressed: () {
-                          _searchController.clear();
-                          videosProvider.clearSearch();
-                        },
-                      )
-                    : null,
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 16,
-                ),
-              ),
-              onChanged: (value) => videosProvider.search(value),
+            prefixIcon: Icon(
+              Icons.search,
+              color: Colors.white.withOpacity(0.7),
+            ),
+            suffixIcon: _searchController.text.isNotEmpty
+                ? IconButton(
+                    icon: Icon(
+                      Icons.clear,
+                      color: Colors.white.withOpacity(0.7),
+                    ),
+                    onPressed: () {
+                      _searchController.clear();
+                      videosProvider.clearSearch();
+                    },
+                  )
+                : null,
+            border: InputBorder.none,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
             ),
           ),
+          onChanged: (value) => videosProvider.search(value),
         ),
       ),
     );
@@ -215,13 +213,16 @@ class _VideosScreenState extends State<VideosScreen> {
         delegate: SliverChildBuilderDelegate((context, index) {
           final video = videosProvider.currentPageVideos[index];
 
-          return VideoCard(
-                video: video,
-                onTap: () => VideoPlayerBottomSheet.show(context, video),
-              )
-              .animate(delay: Duration(milliseconds: index * 50))
-              .fadeIn()
-              .scale(begin: const Offset(0.95, 0.95));
+          return RepaintBoundary(
+            child:
+                VideoCard(
+                      video: video,
+                      onTap: () => VideoPlayerBottomSheet.show(context, video),
+                    )
+                    .animate()
+                    .fadeIn(duration: _cardFadeDuration)
+                    .scale(begin: _scaleBegin),
+          );
         }, childCount: videosProvider.currentPageVideos.length),
       ),
     );

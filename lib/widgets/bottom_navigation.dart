@@ -15,51 +15,39 @@ class AppBottomNavigation extends StatelessWidget {
     return RepaintBoundary(
       child: Container(
         decoration: BoxDecoration(
+          // PERFORMANCE: Removed BackdropFilter, using static glass effect
+          color: AppColors.glassBackground,
           border: Border(
             top: BorderSide(color: Colors.white.withOpacity(0.1), width: 1),
           ),
         ),
-        child: ClipRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(
-              sigmaX: 8, // Reduced from 10 for better performance
-              sigmaY: 8,
-            ),
-            child: Container(
-              decoration: BoxDecoration(color: AppColors.glassBackground),
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 16,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _NavItem(
-                        icon: Icons.home,
-                        isActive: currentIndex == 0,
-                        onTap: () => _onItemTapped(context, 0),
-                      ),
-                      _NavItem(
-                        icon: Icons.radio,
-                        isActive: currentIndex == 1,
-                        onTap: () => _onItemTapped(context, 1),
-                      ),
-                      _NavItem(
-                        icon: Icons.explore,
-                        isActive: currentIndex == 2,
-                        onTap: () => _onItemTapped(context, 2),
-                      ),
-                      _NavItem(
-                        icon: Icons.person,
-                        isActive: currentIndex == 3,
-                        onTap: () => _onItemTapped(context, 3),
-                      ),
-                    ],
-                  ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _NavItem(
+                  icon: Icons.home,
+                  isActive: currentIndex == 0,
+                  onTap: () => _onItemTapped(context, 0),
                 ),
-              ),
+                _NavItem(
+                  icon: Icons.radio,
+                  isActive: currentIndex == 1,
+                  onTap: () => _onItemTapped(context, 1),
+                ),
+                _NavItem(
+                  icon: Icons.explore,
+                  isActive: currentIndex == 2,
+                  onTap: () => _onItemTapped(context, 2),
+                ),
+                _NavItem(
+                  icon: Icons.person,
+                  isActive: currentIndex == 3,
+                  onTap: () => _onItemTapped(context, 3),
+                ),
+              ],
             ),
           ),
         ),

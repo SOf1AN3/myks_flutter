@@ -74,13 +74,21 @@ class RadioProvider extends ChangeNotifier {
     _audioService.setStreamUrl(_streamUrl);
     _audioService.setVolume(_volume);
 
+    // OPTIMIZED: Set up debounced history update callback
+    _icecastService.setHistoryUpdateCallback((history) {
+      _storage.cacheTrackHistory(history);
+    });
+
     // Subscribe to audio service streams
     _stateSubscription = _audioService.stateStream.listen((state) {
       _playerState = state;
       _error = null;
 
+      // OPTIMIZED: Lifecycle-aware polling - only poll when playing
       if (state == RadioPlayerState.playing) {
-        _icecastService.startPolling(_streamUrl);
+        _icecastService.resumePolling(_streamUrl);
+      } else if (state == RadioPlayerState.paused) {
+        _icecastService.pausePolling();
       } else if (state == RadioPlayerState.idle ||
           state == RadioPlayerState.error) {
         _icecastService.stopPolling();
@@ -101,10 +109,19 @@ class RadioProvider extends ChangeNotifier {
 
     // Subscribe to metadata updates
     _metadataSubscription = _icecastService.metadataStream.listen((metadata) {
+      // Only notify if metadata actually changed
+      final oldTitle = _metadata?.title;
+      final oldArtist = _metadata?.artist;
+      final newTitle = metadata.title;
+      final newArtist = metadata.artist;
+
       _metadata = metadata;
       _history = metadata.history;
-      _storage.cacheTrackHistory(_history);
-      notifyListeners();
+
+      // OPTIMIZED: Only notify if title or artist changed (disk writes are now debounced in IcecastService)
+      if (oldTitle != newTitle || oldArtist != newArtist) {
+        notifyListeners();
+      }
     });
   }
 

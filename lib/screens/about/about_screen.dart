@@ -14,12 +14,25 @@ import '../../widgets/common_widgets.dart';
 
 /// About screen with app information and features
 class AboutScreen extends StatelessWidget {
+  // Animation configuration constants
+  static const _headerFadeDuration = Duration(milliseconds: 400);
+  static const _contentFadeDuration = Duration(milliseconds: 500);
+  static const _headerFadeDelay = Duration(milliseconds: 100);
+  static const _missionFadeDelay = Duration(milliseconds: 200);
+  static const _featuresFadeDelay = Duration(milliseconds: 300);
+  static const _socialFadeDelay = Duration(milliseconds: 400);
+  static const _versionFadeDelay = Duration(milliseconds: 500);
+  static const _cardFadeDuration = Duration(milliseconds: 400);
+  static const _scaleBegin = Offset(0.9, 0.9);
+
   const AboutScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final radioProvider = context.watch<RadioProvider>();
-    final showMiniPlayer = radioProvider.isPlaying || radioProvider.isPaused;
+    // OPTIMIZED: Use select to rebuild only when specific properties change
+    final showMiniPlayer = context.select<RadioProvider, bool>(
+      (provider) => provider.isPlaying || provider.isPaused,
+    );
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -43,9 +56,7 @@ class AboutScreen extends StatelessWidget {
                       context: context,
                       title: 'À PROPOS',
                       subtitle: 'DÉCOUVREZ',
-                    ).animate().fadeIn(
-                      duration: const Duration(milliseconds: 400),
-                    ),
+                    ).animate().fadeIn(duration: _headerFadeDuration),
 
                     const SizedBox(height: 32),
 
@@ -53,8 +64,8 @@ class AboutScreen extends StatelessWidget {
                     _buildHeader()
                         .animate()
                         .fadeIn(
-                          duration: const Duration(milliseconds: 500),
-                          delay: const Duration(milliseconds: 100),
+                          duration: _contentFadeDuration,
+                          delay: _headerFadeDelay,
                         )
                         .slideY(begin: 0.1, end: 0),
 
@@ -63,28 +74,28 @@ class AboutScreen extends StatelessWidget {
                     // Mission card
                     _buildMissionCard()
                         .animate()
-                        .fadeIn(delay: const Duration(milliseconds: 200))
+                        .fadeIn(delay: _missionFadeDelay)
                         .slideX(begin: -0.1, end: 0),
 
                     const SizedBox(height: 24),
 
                     // Features grid
                     _buildFeaturesGrid().animate().fadeIn(
-                      delay: const Duration(milliseconds: 300),
+                      delay: _featuresFadeDelay,
                     ),
 
                     const SizedBox(height: 32),
 
                     // Social links
                     _buildSocialLinks().animate().fadeIn(
-                      delay: const Duration(milliseconds: 400),
+                      delay: _socialFadeDelay,
                     ),
 
                     const SizedBox(height: 32),
 
                     // Version info
                     _buildVersionInfo().animate().fadeIn(
-                      delay: const Duration(milliseconds: 500),
+                      delay: _versionFadeDelay,
                     ),
                   ],
                 ),
@@ -231,10 +242,12 @@ class AboutScreen extends StatelessWidget {
       itemCount: features.length,
       itemBuilder: (context, index) {
         final feature = features[index];
-        return _buildFeatureCard(feature)
-            .animate(delay: Duration(milliseconds: 100 * index))
-            .fadeIn()
-            .scale(begin: const Offset(0.9, 0.9));
+        return RepaintBoundary(
+          child: _buildFeatureCard(feature)
+              .animate()
+              .fadeIn(duration: _cardFadeDuration)
+              .scale(begin: _scaleBegin),
+        );
       },
     );
   }

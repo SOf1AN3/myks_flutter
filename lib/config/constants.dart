@@ -12,7 +12,7 @@ class AppConstants {
   static const String apiBaseUrl = 'https://myks.vercel.app';
 
   // Timing
-  static const Duration metadataRefreshInterval = Duration(seconds: 10);
+  static const Duration metadataRefreshInterval = Duration(seconds: 15);
   static const Duration reconnectDelay = Duration(seconds: 3);
   static const int maxReconnectAttempts = 5;
 

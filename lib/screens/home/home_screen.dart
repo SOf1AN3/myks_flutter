@@ -1,9 +1,9 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../config/theme.dart';
 import '../../config/routes.dart';
 import '../../config/constants.dart';
@@ -25,7 +25,19 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  // PERFORMANCE: Reduced animation durations and simplified
+  static const _headerFadeDuration = Duration(milliseconds: 400);
+  static const _videoFadeDuration = Duration(milliseconds: 400);
+  static const _videoFadeDelay = Duration(milliseconds: 100);
+  static const _ctaFadeDuration = Duration(milliseconds: 400);
+  static const _ctaFadeDelay = Duration(milliseconds: 200);
+  static const _footerFadeDuration = Duration(milliseconds: 400);
+  static const _footerFadeDelay = Duration(milliseconds: 300);
+
   YoutubePlayerController? _youtubeController;
+  bool _controllerInitialized = false;
+  bool _shouldLoadVideo = false; // PERFORMANCE: Flag for lazy loading
+  bool _isLoadingVideo = false; // Loading state indicator
 
   @override
   void initState() {
@@ -36,29 +48,53 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadFeaturedVideo() async {
     final videosProvider = context.read<VideosProvider>();
     await videosProvider.fetchFeaturedVideo();
+    // PERFORMANCE: Controller does NOT initialize automatically
+    // Only loads when user taps the video thumbnail
+  }
 
-    final video = videosProvider.featuredVideo;
-    if (video != null && mounted) {
-      setState(() {
-        _youtubeController = YoutubePlayerController(
-          initialVideoId: video.youtubeId,
-          flags: const YoutubePlayerFlags(
-            autoPlay: false,
-            mute: false,
-            disableDragSeek: false,
-            loop: false,
-            isLive: false,
-            forceHD: false,
-            enableCaption: true,
-          ),
-        );
-      });
-    }
+  /// PERFORMANCE: Lazy initialization - only when user taps to load
+  void _onVideoTapToLoad() {
+    if (_controllerInitialized || _isLoadingVideo) return;
+
+    final featuredVideo = context.read<VideosProvider>().featuredVideo;
+    if (featuredVideo == null) return;
+
+    setState(() {
+      _isLoadingVideo = true;
+    });
+
+    // Initialize controller in post-frame callback to avoid build-during-build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      _youtubeController = YoutubePlayerController(
+        initialVideoId: featuredVideo.youtubeId,
+        flags: const YoutubePlayerFlags(
+          autoPlay: false,
+          mute: false,
+          disableDragSeek: false,
+          loop: false,
+          isLive: false,
+          forceHD: false,
+          enableCaption: true,
+        ),
+      );
+      _controllerInitialized = true;
+
+      if (mounted) {
+        setState(() {
+          _shouldLoadVideo = true;
+          _isLoadingVideo = false;
+        });
+      }
+    });
   }
 
   @override
   void dispose() {
+    // OPTIMIZED: Proper cleanup of YouTube controller
     _youtubeController?.dispose();
+    _youtubeController = null;
     super.dispose();
   }
 
@@ -86,40 +122,33 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Logo/Title
-                    _buildHeader()
-                        .animate()
-                        .fadeIn(duration: const Duration(milliseconds: 600))
-                        .slideY(begin: -0.2, end: 0),
+                    // Logo/Title - PERFORMANCE: Simplified animation (fadeIn only)
+                    _buildHeader().animate().fadeIn(
+                      duration: _headerFadeDuration,
+                    ),
 
                     const SizedBox(height: 40),
 
-                    // Featured Video
-                    _buildFeaturedVideo()
-                        .animate()
-                        .fadeIn(
-                          duration: const Duration(milliseconds: 600),
-                          delay: const Duration(milliseconds: 200),
-                        )
-                        .scale(begin: const Offset(0.95, 0.95)),
+                    // Featured Video - PERFORMANCE: Simplified animation
+                    _buildFeaturedVideo().animate().fadeIn(
+                      duration: _videoFadeDuration,
+                      delay: _videoFadeDelay,
+                    ),
 
                     const SizedBox(height: 40),
 
-                    // CTA Buttons
-                    _buildCTAButtons()
-                        .animate()
-                        .fadeIn(
-                          duration: const Duration(milliseconds: 600),
-                          delay: const Duration(milliseconds: 400),
-                        )
-                        .slideY(begin: 0.2, end: 0),
+                    // CTA Buttons - PERFORMANCE: Simplified animation
+                    _buildCTAButtons().animate().fadeIn(
+                      duration: _ctaFadeDuration,
+                      delay: _ctaFadeDelay,
+                    ),
 
                     const SizedBox(height: 60),
 
-                    // Footer - Now in scroll view
+                    // Footer - PERFORMANCE: Simplified animation
                     _buildFooter().animate().fadeIn(
-                      duration: const Duration(milliseconds: 600),
-                      delay: const Duration(milliseconds: 600),
+                      duration: _footerFadeDuration,
+                      delay: _footerFadeDelay,
                     ),
                   ],
                 ),
@@ -149,29 +178,16 @@ class _HomeScreenState extends State<HomeScreen> {
             width: 96,
             height: 96,
             decoration: BoxDecoration(
+              // PERFORMANCE: Removed BackdropFilter, using static gradient
+              gradient: AppColors.playButtonGradient,
               borderRadius: BorderRadius.circular(48),
+              border: Border.all(
+                color: const Color(0x4DFFFFFF), // rgba(255,255,255,0.3)
+                width: 1.5,
+              ),
               boxShadow: GlassEffects.glowShadow,
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(48),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(
-                  sigmaX: 6, // Reduced from 8 for better performance
-                  sigmaY: 6,
-                ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: AppColors.playButtonGradient,
-                    border: Border.all(
-                      color: const Color(0x4DFFFFFF), // rgba(255,255,255,0.3)
-                      width: 1.5,
-                    ),
-                    borderRadius: BorderRadius.circular(48),
-                  ),
-                  child: const Icon(Icons.radio, color: Colors.white, size: 48),
-                ),
-              ),
-            ),
+            child: const Icon(Icons.radio, color: Colors.white, size: 48),
           ),
         ),
 
@@ -200,7 +216,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildFeaturedVideo() {
-    // OPTIMIZED: Use selector to rebuild only when featured video changes
+    // PERFORMANCE: Use selector to rebuild only when featured video changes
     final featuredVideo = context.select<VideosProvider, Video?>(
       (provider) => provider.featuredVideo,
     );
@@ -218,10 +234,10 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Video Player
+            // Video Player or Thumbnail
             AspectRatio(
               aspectRatio: 16 / 9,
-              child: _youtubeController != null && featuredVideo != null
+              child: _shouldLoadVideo && _youtubeController != null
                   ? YoutubePlayer(
                       controller: _youtubeController!,
                       showVideoProgressIndicator: true,
@@ -231,7 +247,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         handleColor: AppColors.primaryDark,
                       ),
                     )
-                  : _buildVideoPlaceholder(),
+                  : _buildVideoThumbnail(featuredVideo),
             ),
 
             // Video info inside same container
@@ -253,6 +269,123 @@ class _HomeScreenState extends State<HomeScreen> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// PERFORMANCE: Shows YouTube thumbnail instead of embedded player
+  /// Player only loads when user taps
+  Widget _buildVideoThumbnail(Video? video) {
+    if (video == null) {
+      return _buildVideoPlaceholder();
+    }
+
+    // PERFORMANCE: Use YouTube thumbnail URL (no player initialization)
+    final thumbnailUrl =
+        'https://img.youtube.com/vi/${video.youtubeId}/hqdefault.jpg';
+
+    return RepaintBoundary(
+      child: GestureDetector(
+        onTap: _onVideoTapToLoad,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // YouTube thumbnail image
+            CachedNetworkImage(
+              imageUrl: thumbnailUrl,
+              fit: BoxFit.cover,
+              placeholder: (context, url) => Container(
+                color: AppColors.darkBackgroundDeep,
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    color: AppColors.primaryLight,
+                  ),
+                ),
+              ),
+              errorWidget: (context, url, error) => _buildVideoPlaceholder(),
+            ),
+
+            // Dark overlay
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.2),
+                    Colors.black.withOpacity(0.5),
+                  ],
+                ),
+              ),
+            ),
+
+            // Play button and text
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (_isLoadingVideo)
+                    // Show loading indicator
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(40),
+                      ),
+                      child: const Center(
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 3,
+                        ),
+                      ),
+                    )
+                  else
+                    // Show play button
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        gradient: AppColors.playButtonGradient,
+                        borderRadius: BorderRadius.circular(40),
+                        boxShadow: GlassEffects.glowShadow,
+                      ),
+                      child: const Icon(
+                        Icons.play_arrow,
+                        size: 48,
+                        color: Colors.white,
+                      ),
+                    ),
+                  if (!_isLoadingVideo) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.2),
+                          width: 1,
+                        ),
+                      ),
+                      child: const Text(
+                        'Appuyez pour charger la vidéo',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -318,43 +451,27 @@ class _HomeScreenState extends State<HomeScreen> {
           height: 72,
           width: double.infinity,
           decoration: BoxDecoration(
+            // PERFORMANCE: Removed BackdropFilter, using static gradient
+            gradient: AppColors.playButtonGradient,
             borderRadius: BorderRadius.circular(36),
+            border: Border.all(color: const Color(0x4DFFFFFF), width: 1.5),
             boxShadow: GlassEffects.glowShadow,
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(36),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(
-                sigmaX: 8, // Reduced from 10 for performance
-                sigmaY: 8,
-              ),
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: AppColors.playButtonGradient,
-                  border: Border.all(
-                    color: const Color(0x4DFFFFFF),
-                    width: 1.5,
-                  ),
-                  borderRadius: BorderRadius.circular(36),
-                ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.radio, color: Colors.white, size: 28),
-                    SizedBox(width: 12),
-                    Text(
-                      'Écouter la Radio',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.radio, color: Colors.white, size: 28),
+              SizedBox(width: 12),
+              Text(
+                'Écouter la Radio',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                  letterSpacing: 0.5,
                 ),
               ),
-            ),
+            ],
           ),
         ),
       ),
@@ -369,44 +486,30 @@ class _HomeScreenState extends State<HomeScreen> {
           height: 56,
           width: double.infinity,
           decoration: BoxDecoration(
+            // PERFORMANCE: Removed BackdropFilter, using static glass color
+            color: AppColors.glassBackground,
             borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: AppColors.glassBorder, width: 1),
             boxShadow: GlassEffects.glassShadow,
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(28),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(
-                sigmaX:
-                    8, // Reduced from GlassEffects.blurIntensityControl (16) for performance
-                sigmaY: 8,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.video_library,
+                color: Colors.white.withOpacity(0.9),
+                size: 24,
               ),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: AppColors.glassBackground,
-                  border: Border.all(color: AppColors.glassBorder, width: 1),
-                  borderRadius: BorderRadius.circular(28),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.video_library,
-                      color: Colors.white.withOpacity(0.9),
-                      size: 24,
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      'Voir les Vidéos',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.white.withOpacity(0.9),
-                      ),
-                    ),
-                  ],
+              const SizedBox(width: 10),
+              Text(
+                'Voir les Vidéos',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white.withOpacity(0.9),
                 ),
               ),
-            ),
+            ],
           ),
         ),
       ),

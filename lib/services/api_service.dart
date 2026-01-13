@@ -11,6 +11,7 @@ class ApiService {
   factory ApiService() => _instance;
 
   late final Dio _dio;
+  final Map<String, CancelToken> _cancelTokens = {};
 
   ApiService._internal() {
     _dio = Dio(
@@ -93,6 +94,12 @@ class ApiService {
     int limit = 12,
     String? search,
   }) async {
+    // Cancel previous request if still running
+    _cancelTokens['getVideos']?.cancel('New request started');
+
+    final cancelToken = CancelToken();
+    _cancelTokens['getVideos'] = cancelToken;
+
     try {
       final response = await _dio.get(
         '/api/videos',
@@ -101,27 +108,44 @@ class ApiService {
           'limit': limit,
           if (search != null && search.isNotEmpty) 'search': search,
         },
+        cancelToken: cancelToken,
       );
 
       final List<dynamic> data = response.data is List
           ? response.data
           : response.data['videos'] ?? [];
 
+      _cancelTokens.remove('getVideos');
       return data.map((json) => Video.fromJson(json)).toList();
     } on DioException catch (e) {
+      _cancelTokens.remove('getVideos');
       throw _handleError(e);
     }
   }
 
   /// Get featured video
   Future<Video?> getFeaturedVideo() async {
+    // Cancel previous request if still running
+    _cancelTokens['getFeaturedVideo']?.cancel('New request started');
+
+    final cancelToken = CancelToken();
+    _cancelTokens['getFeaturedVideo'] = cancelToken;
+
     try {
-      final response = await _dio.get('/api/videos/featured');
+      final response = await _dio.get(
+        '/api/videos/featured',
+        cancelToken: cancelToken,
+      );
+
       if (response.data == null || response.data.isEmpty) {
+        _cancelTokens.remove('getFeaturedVideo');
         return null;
       }
+
+      _cancelTokens.remove('getFeaturedVideo');
       return Video.fromJson(response.data);
     } on DioException catch (e) {
+      _cancelTokens.remove('getFeaturedVideo');
       if (e.response?.statusCode == 404) {
         return null;
       }
@@ -201,5 +225,14 @@ class ApiService {
       default:
         return 'An unexpected error occurred.';
     }
+  }
+
+  /// Dispose and cancel all ongoing requests
+  void dispose() {
+    // Cancel all ongoing requests
+    for (var token in _cancelTokens.values) {
+      token.cancel('Service disposed');
+    }
+    _cancelTokens.clear();
   }
 }

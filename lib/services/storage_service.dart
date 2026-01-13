@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../config/constants.dart';
@@ -26,6 +27,22 @@ class StorageService {
     _cacheBox = await Hive.openBox<String>('cache');
 
     _initialized = true;
+  }
+
+  /// PERFORMANCE: Warm up cache to reduce I/O during initial build
+  Future<void> warmupCache() async {
+    if (!_initialized) return;
+
+    try {
+      // Preload SharedPreferences into memory
+      await _prefs.reload();
+
+      // Compact Hive box for faster reads
+      await _cacheBox.compact();
+    } catch (e) {
+      // Non-critical, just log
+      debugPrint('[StorageService] Warmup cache error: $e');
+    }
   }
 
   // ==================== Preferences ====================

@@ -112,6 +112,11 @@ class VideoCard extends StatelessWidget {
           CachedNetworkImage(
             imageUrl: video.thumbnailUrl,
             fit: BoxFit.cover,
+            // OPTIMIZED: Add size constraints to prevent full-resolution loading
+            maxWidthDiskCache: 400,
+            maxHeightDiskCache: 300,
+            memCacheWidth: 400,
+            memCacheHeight: 300,
             placeholder: (context, url) => Shimmer.fromColors(
               baseColor: isDark ? AppColors.darkMuted : AppColors.lightMuted,
               highlightColor: isDark

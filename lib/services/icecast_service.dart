@@ -11,6 +11,8 @@ class IcecastService {
 
   late final Dio _dio;
   Timer? _refreshTimer;
+  bool _isPaused = false;
+  CancelToken? _metadataRequestToken;
 
   final _metadataController = StreamController<RadioMetadata>.broadcast();
   Stream<RadioMetadata> get metadataStream => _metadataController.stream;
@@ -20,6 +22,10 @@ class IcecastService {
 
   final List<Track> _history = [];
   List<Track> get history => List.unmodifiable(_history);
+
+  // Debouncing for disk writes
+  Timer? _historyUpdateTimer;
+  bool _historyNeedsUpdate = false;
 
   IcecastService._internal() {
     _dio = Dio(
@@ -33,30 +39,71 @@ class IcecastService {
   /// Start polling for metadata
   void startPolling(String streamUrl) {
     stopPolling();
+    _isPaused = false;
 
     // Fetch immediately
     fetchMetadata(streamUrl);
 
     // Then poll at regular intervals
-    _refreshTimer = Timer.periodic(
-      AppConstants.metadataRefreshInterval,
-      (_) => fetchMetadata(streamUrl),
-    );
+    _refreshTimer = Timer.periodic(AppConstants.metadataRefreshInterval, (_) {
+      if (!_isPaused) {
+        fetchMetadata(streamUrl);
+      }
+    });
   }
 
   /// Stop polling for metadata
   void stopPolling() {
     _refreshTimer?.cancel();
     _refreshTimer = null;
+    _isPaused = false;
+
+    // Cancel any ongoing metadata request
+    _metadataRequestToken?.cancel('Polling stopped');
+    _metadataRequestToken = null;
+  }
+
+  /// Pause polling (timer keeps running but requests are skipped)
+  void pausePolling() {
+    _isPaused = true;
+
+    // Cancel any ongoing metadata request
+    _metadataRequestToken?.cancel('Polling paused');
+    _metadataRequestToken = null;
+  }
+
+  /// Resume polling
+  void resumePolling(String streamUrl) {
+    if (_isPaused) {
+      _isPaused = false;
+
+      // If timer is not running, start it
+      if (_refreshTimer == null || !_refreshTimer!.isActive) {
+        startPolling(streamUrl);
+      } else {
+        // If timer is running, just fetch immediately
+        fetchMetadata(streamUrl);
+      }
+    }
   }
 
   /// Fetch metadata from Icecast server
   Future<RadioMetadata?> fetchMetadata(String streamUrl) async {
+    // Skip if paused
+    if (_isPaused) {
+      return _lastMetadata;
+    }
+
+    // Cancel previous request if still running
+    _metadataRequestToken?.cancel('New request started');
+    _metadataRequestToken = CancelToken();
+
     try {
       // Try status-json.xsl first
       final metadata = await _fetchFromStatusJson(streamUrl);
       if (metadata != null) {
         _updateMetadata(metadata);
+        _metadataRequestToken = null;
         return metadata;
       }
 
@@ -64,11 +111,14 @@ class IcecastService {
       final icyMetadata = await _fetchFromIcyHeaders(streamUrl);
       if (icyMetadata != null) {
         _updateMetadata(icyMetadata);
+        _metadataRequestToken = null;
         return icyMetadata;
       }
 
+      _metadataRequestToken = null;
       return null;
     } catch (e) {
+      _metadataRequestToken = null;
       // Return last known metadata on error
       return _lastMetadata;
     }
@@ -82,7 +132,10 @@ class IcecastService {
       final statusUrl =
           '${uri.scheme}://${uri.host}:${uri.port}/status-json.xsl';
 
-      final response = await _dio.get(statusUrl);
+      final response = await _dio.get(
+        statusUrl,
+        cancelToken: _metadataRequestToken,
+      );
 
       if (response.statusCode == 200 && response.data != null) {
         return RadioMetadata.fromIcecast(response.data);
@@ -102,6 +155,7 @@ class IcecastService {
           headers: {'Icy-MetaData': '1'},
           validateStatus: (status) => status != null && status < 400,
         ),
+        cancelToken: _metadataRequestToken,
       );
 
       final headers = response.headers;
@@ -165,10 +219,41 @@ class IcecastService {
 
     _history.insert(0, track);
 
-    // Keep only last 50 tracks
-    if (_history.length > 50) {
+    // OPTIMIZED: Reduced from 50 to 25 to minimize memory usage
+    if (_history.length > 25) {
       _history.removeLast();
     }
+
+    // OPTIMIZED: Mark that history needs update instead of writing immediately
+    _markHistoryForUpdate();
+  }
+
+  /// Mark history for batched disk write (debounced)
+  void _markHistoryForUpdate() {
+    _historyNeedsUpdate = true;
+    _historyUpdateTimer?.cancel();
+
+    // OPTIMIZED: Debounce disk writes - only write after 5 seconds of no updates
+    _historyUpdateTimer = Timer(
+      const Duration(seconds: 5),
+      _flushHistoryUpdate,
+    );
+  }
+
+  /// Flush pending history updates to disk
+  void _flushHistoryUpdate() {
+    if (_historyNeedsUpdate && _historyUpdateCallback != null) {
+      _historyUpdateCallback!(_history);
+      _historyNeedsUpdate = false;
+    }
+  }
+
+  // Callback for notifying about history updates (set by RadioProvider)
+  void Function(List<Track>)? _historyUpdateCallback;
+
+  /// Set callback for history updates
+  void setHistoryUpdateCallback(void Function(List<Track>) callback) {
+    _historyUpdateCallback = callback;
   }
 
   /// Clear history
@@ -183,11 +268,13 @@ class IcecastService {
   /// Test if stream URL is valid and reachable
   Future<bool> testStreamUrl(String streamUrl) async {
     try {
+      final testToken = CancelToken();
       final response = await _dio.head(
         streamUrl,
         options: Options(
           validateStatus: (status) => status != null && status < 400,
         ),
+        cancelToken: testToken,
       );
       return response.statusCode == 200;
     } catch (e) {
@@ -198,6 +285,15 @@ class IcecastService {
   /// Dispose resources
   void dispose() {
     stopPolling();
+    _historyUpdateTimer?.cancel();
+
+    // Cancel any ongoing requests
+    _metadataRequestToken?.cancel('Service disposed');
+    _metadataRequestToken = null;
+
+    // Flush any pending updates before disposing
+    _flushHistoryUpdate();
+
     _metadataController.close();
   }
 }

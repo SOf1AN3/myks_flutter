@@ -16,9 +16,32 @@ import 'widgets/live_community_panel.dart';
 class RadioScreen extends StatelessWidget {
   const RadioScreen({super.key});
 
+  // Static const animation durations and parameters to avoid recreation
+  static const _fadeInDuration = Duration(milliseconds: 400);
+  static const _fadeInDuration500 = Duration(milliseconds: 500);
+  static const _delay100 = Duration(milliseconds: 100);
+  static const _delay200 = Duration(milliseconds: 200);
+  static const _delay300 = Duration(milliseconds: 300);
+  static const _delay400 = Duration(milliseconds: 400);
+  static const _slideYBegin = 0.1;
+  static const _slideYEnd = 0.0;
+  static const _slideYBegin2 = 0.2;
+
   @override
   Widget build(BuildContext context) {
-    final radioProvider = context.watch<RadioProvider>();
+    // OPTIMIZED: Use select for specific properties only
+    final isPlaying = context.select<RadioProvider, bool>(
+      (provider) => provider.isPlaying,
+    );
+    final isLoading = context.select<RadioProvider, bool>(
+      (provider) => provider.isLoading,
+    );
+    final volume = context.select<RadioProvider, double>(
+      (provider) => provider.volume,
+    );
+    final error = context.select<RadioProvider, String?>(
+      (provider) => provider.error,
+    );
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -49,26 +72,20 @@ class RadioScreen extends StatelessWidget {
                         ),
                       ),
                       onMenuTap: () => _showMenu(context),
-                    ).animate().fadeIn(
-                      duration: const Duration(milliseconds: 400),
-                    ),
+                    ).animate().fadeIn(duration: _fadeInDuration),
 
                     const SizedBox(height: 20),
 
                     // Audio Visualizer in curved glass viewer
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child:
-                          AudioVisualizer(
-                                isPlaying: radioProvider.isPlaying,
-                                height: 200,
-                              )
-                              .animate()
-                              .fadeIn(
-                                duration: const Duration(milliseconds: 500),
-                                delay: const Duration(milliseconds: 100),
-                              )
-                              .slideY(begin: 0.1, end: 0),
+                      child: AudioVisualizer(isPlaying: isPlaying, height: 200)
+                          .animate()
+                          .fadeIn(
+                            duration: _fadeInDuration500,
+                            delay: _delay100,
+                          )
+                          .slideY(begin: _slideYBegin, end: _slideYEnd),
                     ),
 
                     const SizedBox(height: 40),
@@ -76,12 +93,10 @@ class RadioScreen extends StatelessWidget {
                     // Track title and info
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: _buildTrackInfo(context, radioProvider)
-                          .animate()
-                          .fadeIn(
-                            duration: const Duration(milliseconds: 500),
-                            delay: const Duration(milliseconds: 200),
-                          ),
+                      child: _buildTrackInfo(context).animate().fadeIn(
+                        duration: _fadeInDuration500,
+                        delay: _delay200,
+                      ),
                     ),
 
                     const SizedBox(height: 40),
@@ -91,27 +106,36 @@ class RadioScreen extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       child:
                           PlayerControls(
-                            isPlaying: radioProvider.isPlaying,
-                            isLoading: radioProvider.isLoading,
-                            volume: radioProvider.volume,
-                            onTogglePlay: () => radioProvider.togglePlayPause(),
-                            onVolumeChange: (volume) =>
-                                radioProvider.setVolume(volume),
+                            isPlaying: isPlaying,
+                            isLoading: isLoading,
+                            volume: volume,
+                            onTogglePlay: () {
+                              final radioProvider = context
+                                  .read<RadioProvider>();
+                              radioProvider.togglePlayPause();
+                            },
+                            onVolumeChange: (newVolume) {
+                              final radioProvider = context
+                                  .read<RadioProvider>();
+                              radioProvider.setVolume(newVolume);
+                            },
                           ).animate().fadeIn(
-                            duration: const Duration(milliseconds: 500),
-                            delay: const Duration(milliseconds: 300),
+                            duration: _fadeInDuration500,
+                            delay: _delay300,
                           ),
                     ),
 
                     const SizedBox(height: 20),
 
                     // Error message if any
-                    if (radioProvider.error != null)
+                    if (error != null)
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: _buildErrorBanner(
-                          radioProvider.error!,
-                        ).animate().fadeIn().shake(),
+                        child: RepaintBoundary(
+                          child: _buildErrorBanner(
+                            error,
+                          ).animate().fadeIn().shake(),
+                        ),
                       ),
 
                     const SizedBox(height: 20),
@@ -132,10 +156,10 @@ class RadioScreen extends StatelessWidget {
                       child: const LiveCommunityPanel()
                           .animate()
                           .fadeIn(
-                            duration: const Duration(milliseconds: 500),
-                            delay: const Duration(milliseconds: 400),
+                            duration: _fadeInDuration500,
+                            delay: _delay400,
                           )
-                          .slideY(begin: 0.2, end: 0),
+                          .slideY(begin: _slideYBegin2, end: _slideYEnd),
                     ),
                     const SizedBox(height: 8),
                   ],
@@ -149,13 +173,19 @@ class RadioScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTrackInfo(BuildContext context, RadioProvider radioProvider) {
-    final track = radioProvider.currentTrack;
+  Widget _buildTrackInfo(BuildContext context) {
+    // OPTIMIZED: Select only the track data we need
+    final currentTitle = context.select<RadioProvider, String>(
+      (provider) => provider.currentTitle,
+    );
+    final currentArtist = context.select<RadioProvider, String>(
+      (provider) => provider.currentArtist,
+    );
 
     return Column(
       children: [
         Text(
-          track?.displayTitle ?? 'Vibe Urbaine Vol. 3',
+          currentTitle,
           style: const TextStyle(
             fontSize: 32,
             fontWeight: FontWeight.bold,
@@ -168,7 +198,7 @@ class RadioScreen extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          track?.displayArtist ?? 'Original Mix • 102.4 FM',
+          currentArtist,
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w500,

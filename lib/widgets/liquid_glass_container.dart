@@ -11,7 +11,9 @@ import '../config/theme.dart';
 /// - Configurable border radius and padding
 ///
 /// Performance Optimization:
-/// - Set [enableBlur] to false to simulate glass effect without BackdropFilter
+/// - [enableBlur] is false by default for better performance
+/// - BackdropFilter is EXPENSIVE! Only enable blur when truly necessary
+/// - Static glass effect (blur disabled) looks nearly identical but performs much better
 /// - Already wrapped with RepaintBoundary for optimal rendering
 class LiquidGlassContainer extends StatelessWidget {
   final Widget? child;
@@ -42,7 +44,7 @@ class LiquidGlassContainer extends StatelessWidget {
     this.showInnerGlow = false,
     this.alignment,
     this.boxShadow,
-    this.enableBlur = true,
+    this.enableBlur = false, // PERFORMANCE: Changed default to false
   });
 
   @override
