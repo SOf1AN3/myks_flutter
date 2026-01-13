@@ -2,30 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../config/theme.dart';
+import '../../models/radio_metadata.dart';
 import '../../providers/radio_provider.dart';
 import '../../widgets/bottom_navigation.dart';
 import '../../widgets/mesh_gradient_background.dart';
 import '../../widgets/liquid_glass_container.dart';
-import '../../widgets/screen_header.dart';
+import '../../widgets/liquid_button.dart';
 import 'widgets/audio_visualizer.dart';
-import 'widgets/player_controls.dart';
-import 'widgets/live_community_panel.dart';
 
 /// Main radio screen with liquid glass design
-/// Redesigned to match design.html aesthetic
+/// Redesigned with simplified UI and enhanced metadata display
 class RadioScreen extends StatelessWidget {
   const RadioScreen({super.key});
 
   // Static const animation durations and parameters to avoid recreation
-  static const _fadeInDuration = Duration(milliseconds: 400);
   static const _fadeInDuration500 = Duration(milliseconds: 500);
   static const _delay100 = Duration(milliseconds: 100);
   static const _delay200 = Duration(milliseconds: 200);
   static const _delay300 = Duration(milliseconds: 300);
-  static const _delay400 = Duration(milliseconds: 400);
   static const _slideYBegin = 0.1;
   static const _slideYEnd = 0.0;
-  static const _slideYBegin2 = 0.2;
 
   @override
   Widget build(BuildContext context) {
@@ -36,9 +32,6 @@ class RadioScreen extends StatelessWidget {
     final isLoading = context.select<RadioProvider, bool>(
       (provider) => provider.isLoading,
     );
-    final volume = context.select<RadioProvider, double>(
-      (provider) => provider.volume,
-    );
     final error = context.select<RadioProvider, String?>(
       (provider) => provider.error,
     );
@@ -48,124 +41,95 @@ class RadioScreen extends StatelessWidget {
       body: MeshGradientBackground(
         child: SafeArea(
           bottom: false,
-          child: Stack(
-            children: [
-              // Main scrollable content
-              SingleChildScrollView(
-                padding: const EdgeInsets.only(
-                  bottom: 450,
-                ), // Space for panel + nav
-                child: Column(
-                  children: [
-                    // Header with back and menu buttons
-                    ScreenHeader.withMenu(
-                      context: context,
-                      title: 'MYKS Radio',
-                      subtitle: 'STREAMING NOW',
-                      leading: LiquidControlContainer(
-                        size: 40,
-                        onTap: () => Navigator.of(context).pop(),
-                        child: const Icon(
-                          Icons.keyboard_arrow_down,
-                          size: 24,
-                          color: Colors.white,
-                        ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.only(bottom: 100), // Space for nav
+            child: Column(
+              children: [
+                const SizedBox(height: 40),
+
+                // App title
+                Text(
+                      'MYKS Radio',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        letterSpacing: 2,
                       ),
-                      onMenuTap: () => _showMenu(context),
-                    ).animate().fadeIn(duration: _fadeInDuration),
+                    )
+                    .animate()
+                    .fadeIn(duration: _fadeInDuration500)
+                    .slideY(begin: _slideYBegin, end: _slideYEnd),
 
-                    const SizedBox(height: 20),
+                const SizedBox(height: 8),
 
-                    // Audio Visualizer in curved glass viewer
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: AudioVisualizer(isPlaying: isPlaying, height: 200)
-                          .animate()
-                          .fadeIn(
-                            duration: _fadeInDuration500,
-                            delay: _delay100,
-                          )
-                          .slideY(begin: _slideYBegin, end: _slideYEnd),
-                    ),
-
-                    const SizedBox(height: 40),
-
-                    // Track title and info
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: _buildTrackInfo(context).animate().fadeIn(
-                        duration: _fadeInDuration500,
-                        delay: _delay200,
+                // Streaming status
+                Text(
+                      'STREAMING NOW',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.primary,
+                        letterSpacing: 1.5,
                       ),
-                    ),
+                    )
+                    .animate()
+                    .fadeIn(duration: _fadeInDuration500, delay: _delay100)
+                    .slideY(begin: _slideYBegin, end: _slideYEnd),
 
-                    const SizedBox(height: 40),
+                const SizedBox(height: 40),
 
-                    // Player controls (prev + play + next + volume)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child:
-                          PlayerControls(
-                            isPlaying: isPlaying,
-                            isLoading: isLoading,
-                            volume: volume,
-                            onTogglePlay: () {
-                              final radioProvider = context
-                                  .read<RadioProvider>();
-                              radioProvider.togglePlayPause();
-                            },
-                            onVolumeChange: (newVolume) {
-                              final radioProvider = context
-                                  .read<RadioProvider>();
-                              radioProvider.setVolume(newVolume);
-                            },
-                          ).animate().fadeIn(
-                            duration: _fadeInDuration500,
-                            delay: _delay300,
-                          ),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // Error message if any
-                    if (error != null)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: RepaintBoundary(
-                          child: _buildErrorBanner(
-                            error,
-                          ).animate().fadeIn().shake(),
-                        ),
-                      ),
-
-                    const SizedBox(height: 20),
-                  ],
+                // Enhanced metadata display
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: _buildEnhancedMetadata(context).animate().fadeIn(
+                    duration: _fadeInDuration500,
+                    delay: _delay100,
+                  ),
                 ),
-              ),
 
-              // Live Community Panel at bottom (fixed)
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: const LiveCommunityPanel()
-                          .animate()
-                          .fadeIn(
-                            duration: _fadeInDuration500,
-                            delay: _delay400,
-                          )
-                          .slideY(begin: _slideYBegin2, end: _slideYEnd),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
+                const SizedBox(height: 48),
+
+                // Audio Visualizer (new simple version)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: SimpleAudioVisualizer(isPlaying: isPlaying)
+                      .animate()
+                      .fadeIn(duration: _fadeInDuration500, delay: _delay200)
+                      .slideY(begin: _slideYBegin, end: _slideYEnd),
                 ),
-              ),
-            ],
+
+                const SizedBox(height: 48),
+
+                // Play button only (centered)
+                LiquidButton.play(
+                      isPlaying: isPlaying,
+                      isLoading: isLoading,
+                      onTap: () {
+                        final radioProvider = context.read<RadioProvider>();
+                        radioProvider.togglePlayPause();
+                      },
+                    )
+                    .animate()
+                    .fadeIn(duration: _fadeInDuration500, delay: _delay300)
+                    .scale(begin: const Offset(0.8, 0.8)),
+
+                const SizedBox(height: 20),
+
+                // Error message if any
+                if (error != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: RepaintBoundary(
+                      child: _buildErrorBanner(
+                        error,
+                      ).animate().fadeIn().shake(),
+                    ),
+                  ),
+
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ),
       ),
@@ -173,48 +137,102 @@ class RadioScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTrackInfo(BuildContext context) {
-    // OPTIMIZED: Select only the track data we need
+  /// Enhanced metadata display with better visual hierarchy
+  Widget _buildEnhancedMetadata(BuildContext context) {
+    // Select metadata properties
     final currentTitle = context.select<RadioProvider, String>(
       (provider) => provider.currentTitle,
     );
     final currentArtist = context.select<RadioProvider, String>(
       (provider) => provider.currentArtist,
     );
+    final metadata = context.select<RadioProvider, RadioMetadata?>(
+      (provider) => provider.metadata,
+    );
 
-    return Column(
-      children: [
-        Text(
-          currentTitle,
-          style: const TextStyle(
-            fontSize: 32,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-            letterSpacing: -0.5,
+    return LiquidGlassContainer(
+      padding: const EdgeInsets.all(28),
+      borderRadius: GlassEffects.radiusLarge,
+      child: Column(
+        children: [
+          // Title
+          Text(
+            currentTitle,
+            style: const TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              height: 1.2,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
           ),
-          textAlign: TextAlign.center,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        const SizedBox(height: 8),
-        Text(
-          currentArtist,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w500,
-            color: AppColors.primary.withOpacity(0.9),
-          ),
-          textAlign: TextAlign.center,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ],
+
+          if (currentArtist != 'En attente...') ...[
+            const SizedBox(height: 12),
+
+            // Artist
+            Text(
+              currentArtist,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primary,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+
+          // Additional metadata
+          if (metadata != null) ...[
+            const SizedBox(height: 20),
+
+            // Divider
+            Container(
+              height: 1,
+              margin: const EdgeInsets.symmetric(horizontal: 40),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.transparent,
+                    AppColors.glassControlBorder,
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Stats row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (metadata.listeners != null) ...[
+                  _MetadataItem(
+                    icon: Icons.people,
+                    label: '${metadata.listeners} auditeurs',
+                  ),
+                  const SizedBox(width: 24),
+                ],
+                if (metadata.bitrate != null)
+                  _MetadataItem(
+                    icon: Icons.graphic_eq,
+                    label: metadata.bitrateDisplay,
+                  ),
+              ],
+            ),
+          ],
+        ],
+      ),
     );
   }
 
   Widget _buildErrorBanner(String error) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 24),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
@@ -235,74 +253,31 @@ class RadioScreen extends StatelessWidget {
       ),
     );
   }
-
-  void _showMenu(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => LiquidGlassContainer(
-        margin: const EdgeInsets.all(16),
-        padding: const EdgeInsets.all(24),
-        borderRadius: GlassEffects.radiusLarge,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Handle
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 24),
-            _MenuOption(
-              icon: Icons.share,
-              title: 'Partager',
-              onTap: () => Navigator.pop(context),
-            ),
-            _MenuOption(
-              icon: Icons.info_outline,
-              title: 'À propos',
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/about');
-              },
-            ),
-            _MenuOption(
-              icon: Icons.settings,
-              title: 'Paramètres',
-              onTap: () => Navigator.pop(context),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
-class _MenuOption extends StatelessWidget {
+/// Metadata item widget for displaying stats
+class _MetadataItem extends StatelessWidget {
   final IconData icon;
-  final String title;
-  final VoidCallback onTap;
+  final String label;
 
-  const _MenuOption({
-    required this.icon,
-    required this.title,
-    required this.onTap,
-  });
+  const _MetadataItem({required this.icon, required this.label});
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.white.withOpacity(0.9)),
-      title: Text(
-        title,
-        style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 16),
-      ),
-      onTap: onTap,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 16, color: AppColors.primary.withOpacity(0.8)),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: Colors.white.withOpacity(0.7),
+          ),
+        ),
+      ],
     );
   }
 }

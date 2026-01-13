@@ -24,10 +24,12 @@ void main() async {
 
   // Wrap initialization in try-catch
   try {
-    // Set preferred orientations
+    // Allow all orientations (portrait and landscape)
     await SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
     ]);
 
     // Initialize storage service

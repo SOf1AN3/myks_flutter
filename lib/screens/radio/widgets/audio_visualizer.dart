@@ -3,65 +3,27 @@ import 'package:flutter/material.dart';
 import '../../../config/theme.dart';
 import '../../../widgets/liquid_glass_container.dart';
 
-/// Audio visualizer with animated bars in a curved glass viewer
-/// Matches the design.html with 10 bars and specific heights
-class AudioVisualizer extends StatefulWidget {
+/// Simple and elegant audio visualizer with clean pulsing circles
+/// Designed to be lightweight and visually appealing
+class SimpleAudioVisualizer extends StatefulWidget {
   final bool isPlaying;
-  final double height;
 
-  const AudioVisualizer({
-    super.key,
-    required this.isPlaying,
-    this.height = 200,
-  });
+  const SimpleAudioVisualizer({super.key, required this.isPlaying});
 
   @override
-  State<AudioVisualizer> createState() => _AudioVisualizerState();
+  State<SimpleAudioVisualizer> createState() => _SimpleAudioVisualizerState();
 }
 
-class _AudioVisualizerState extends State<AudioVisualizer>
+class _SimpleAudioVisualizerState extends State<SimpleAudioVisualizer>
     with SingleTickerProviderStateMixin {
-  // 10 bars with predefined heights matching design.html
-  // Heights: h-12, h-24, h-16, h-32, h-20, h-36, h-24, h-16, h-28, h-14
-  // In pixels (1rem = 4px): 48, 96, 64, 128, 80, 144, 96, 64, 112, 56
-  static const List<double> _barHeights = [
-    48,
-    96,
-    64,
-    128,
-    80,
-    144,
-    96,
-    64,
-    112,
-    56,
-  ];
-  static const int _barCount = 10;
-  static const double _barWidth = 5;
-  static const double _barSpacing = 6;
-
-  // OPTIMIZED: Single animation controller instead of 10
   late AnimationController _controller;
-  late List<double> _phases; // Random phases for each bar
-  final math.Random _random = math.Random();
 
   @override
   void initState() {
     super.initState();
-    _initAnimation();
-  }
-
-  void _initAnimation() {
-    // Generate random phases for variety
-    _phases = List.generate(
-      _barCount,
-      (_) => _random.nextDouble() * 2 * math.pi,
-    );
-
-    // Single controller for all bars
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 2000),
     );
 
     if (widget.isPlaying) {
@@ -70,14 +32,13 @@ class _AudioVisualizerState extends State<AudioVisualizer>
   }
 
   @override
-  void didUpdateWidget(AudioVisualizer oldWidget) {
+  void didUpdateWidget(SimpleAudioVisualizer oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.isPlaying != oldWidget.isPlaying) {
       if (widget.isPlaying) {
         _controller.repeat();
       } else {
         _controller.stop();
-        _controller.animateTo(0.7, duration: const Duration(milliseconds: 300));
       }
     }
   }
@@ -91,45 +52,80 @@ class _AudioVisualizerState extends State<AudioVisualizer>
   @override
   Widget build(BuildContext context) {
     return RepaintBoundary(
-      child: CurvedGlassViewer(
-        height: widget.height,
-        child: AnimatedBuilder(
-          animation: _controller,
-          builder: (context, child) {
-            return Row(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: List.generate(_barCount, (index) {
-                // Calculate height using sine wave with unique phase
-                final phase = _phases[index];
-                final value = math.sin(_controller.value * 2 * math.pi + phase);
-                final baseHeight = _barHeights[index];
-                final animatedHeight =
-                    baseHeight *
-                    (0.7 + (value * 0.15)); // Oscillate between 70% and 85%
+      child: LiquidGlassContainer(
+        height: 200,
+        borderRadius: GlassEffects.radiusLarge,
+        child: Center(
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Outer pulsing circle
+                  _buildPulsingCircle(size: 140, opacity: 0.15, delay: 0.0),
+                  // Middle pulsing circle
+                  _buildPulsingCircle(size: 100, opacity: 0.25, delay: 0.33),
+                  // Inner pulsing circle
+                  _buildPulsingCircle(size: 60, opacity: 0.4, delay: 0.66),
+                  // Center solid circle with gradient
+                  Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          AppColors.primary,
+                          AppColors.primary.withOpacity(0.6),
+                        ],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withOpacity(0.5),
+                          blurRadius: 20,
+                          spreadRadius: 5,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
 
-                return Container(
-                  width: _barWidth,
-                  height: animatedHeight,
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: _barSpacing / 2,
-                  ),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(_barWidth / 2),
-                    gradient: AppColors.waveBarGradient,
-                  ),
-                );
-              }),
-            );
-          },
+  Widget _buildPulsingCircle({
+    required double size,
+    required double opacity,
+    required double delay,
+  }) {
+    // Calculate pulsing scale
+    final progress = (_controller.value + delay) % 1.0;
+    final scale = 0.7 + (math.sin(progress * 2 * math.pi) * 0.15);
+    final pulseOpacity = opacity * (1.0 - (progress * 0.5));
+
+    return Transform.scale(
+      scale: scale,
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: AppColors.primary.withOpacity(pulseOpacity),
+            width: 2,
+          ),
         ),
       ),
     );
   }
 }
 
-/// Compact audio visualizer for smaller spaces
+/// Compact audio visualizer for smaller spaces (kept for compatibility)
 class CompactAudioVisualizer extends StatefulWidget {
   final bool isPlaying;
   final int barCount;
@@ -150,7 +146,6 @@ class CompactAudioVisualizer extends StatefulWidget {
 
 class _CompactAudioVisualizerState extends State<CompactAudioVisualizer>
     with SingleTickerProviderStateMixin {
-  // OPTIMIZED: Single animation controller
   late AnimationController _controller;
   late List<double> _phases;
   final math.Random _random = math.Random();

@@ -38,12 +38,12 @@ class AppBottomNavigation extends StatelessWidget {
                   onTap: () => _onItemTapped(context, 1),
                 ),
                 _NavItem(
-                  icon: Icons.explore,
+                  icon: Icons.video_library,
                   isActive: currentIndex == 2,
                   onTap: () => _onItemTapped(context, 2),
                 ),
                 _NavItem(
-                  icon: Icons.person,
+                  icon: Icons.info_outline,
                   isActive: currentIndex == 3,
                   onTap: () => _onItemTapped(context, 3),
                 ),

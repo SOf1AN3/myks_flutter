@@ -67,10 +67,9 @@ class _VideosScreenState extends State<VideosScreen> {
                 onRefresh: () => videosProvider.refresh(),
                 child: CustomScrollView(
                   slivers: [
-                    // Header with back button
+                    // Header
                     SliverToBoxAdapter(
-                      child: ScreenHeader.withBack(
-                        context: context,
+                      child: ScreenHeader(
                         title: 'VIDÉOS',
                         subtitle: 'DÉCOUVREZ',
                       ).animate().fadeIn(duration: _headerFadeDuration),
@@ -204,8 +203,8 @@ class _VideosScreenState extends State<VideosScreen> {
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       sliver: SliverGrid(
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: _calculateCrossAxisCount(context),
           childAspectRatio: 0.7,
           crossAxisSpacing: 16,
           mainAxisSpacing: 16,
@@ -228,12 +227,26 @@ class _VideosScreenState extends State<VideosScreen> {
     );
   }
 
+  /// Calculate responsive cross axis count based on screen width
+  int _calculateCrossAxisCount(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    if (width >= 1200) {
+      return 4; // Large tablets/desktops
+    } else if (width >= 900) {
+      return 3; // Tablets landscape
+    } else if (width >= 600) {
+      return 2; // Tablets portrait / large phones landscape
+    } else {
+      return 2; // Phones
+    }
+  }
+
   Widget _buildLoadingGrid() {
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       sliver: SliverGrid(
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: _calculateCrossAxisCount(context),
           childAspectRatio: 0.7,
           crossAxisSpacing: 16,
           mainAxisSpacing: 16,

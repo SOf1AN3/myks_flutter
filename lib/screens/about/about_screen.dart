@@ -9,7 +9,6 @@ import '../../widgets/bottom_navigation.dart';
 import '../../widgets/mini_player.dart';
 import '../../widgets/mesh_gradient_background.dart';
 import '../../widgets/liquid_glass_container.dart';
-import '../../widgets/screen_header.dart';
 import '../../widgets/common_widgets.dart';
 
 /// About screen with app information and features
@@ -46,17 +45,15 @@ class AboutScreen extends StatelessWidget {
                   left: 24,
                   right: 24,
                   top: 20,
-                  bottom: showMiniPlayer ? 100 : 20,
+                  bottom: showMiniPlayer ? 160 : 100,
                 ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Header with back button
-                    ScreenHeader.withBack(
-                      context: context,
-                      title: 'À PROPOS',
-                      subtitle: 'DÉCOUVREZ',
-                    ).animate().fadeIn(duration: _headerFadeDuration),
+                    // Header without back button
+                    _buildPageHeader().animate().fadeIn(
+                      duration: _headerFadeDuration,
+                    ),
 
                     const SizedBox(height: 32),
 
@@ -84,14 +81,14 @@ class AboutScreen extends StatelessWidget {
                       delay: _featuresFadeDelay,
                     ),
 
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
 
                     // Social links
                     _buildSocialLinks().animate().fadeIn(
                       delay: _socialFadeDelay,
                     ),
 
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
 
                     // Version info
                     _buildVersionInfo().animate().fadeIn(
@@ -113,6 +110,32 @@ class AboutScreen extends StatelessWidget {
         ),
       ),
       bottomNavigationBar: const AppBottomNavigation(currentIndex: 3),
+    );
+  }
+
+  Widget _buildPageHeader() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'DÉCOUVREZ',
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 2,
+            color: Colors.white.withOpacity(0.4),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'À PROPOS',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Colors.white.withOpacity(0.9),
+          ),
+        ),
+      ],
     );
   }
 
@@ -235,7 +258,7 @@ class AboutScreen extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 0.9,
+        childAspectRatio: 1.0,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
       ),
@@ -256,6 +279,7 @@ class AboutScreen extends StatelessWidget {
     return LiquidGlassContainer(
       padding: const EdgeInsets.all(16),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
@@ -273,17 +297,21 @@ class AboutScreen extends StatelessWidget {
               fontSize: 14,
               fontWeight: FontWeight.bold,
               color: Colors.white,
+              height: 1.2,
             ),
+            maxLines: 2,
+            overflow: TextOverflow.visible,
           ),
-          const SizedBox(height: 4),
-          Expanded(
-            child: Text(
-              feature.description,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.white.withOpacity(0.7),
-              ),
+          const SizedBox(height: 6),
+          Text(
+            feature.description,
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.white.withOpacity(0.7),
+              height: 1.4,
             ),
+            maxLines: 3,
+            overflow: TextOverflow.visible,
           ),
         ],
       ),
@@ -368,32 +396,69 @@ class AboutScreen extends StatelessWidget {
 
   Widget _buildVersionInfo() {
     return LiquidGlassContainer(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      showInnerGlow: true,
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(
-            '${AppConstants.appName} v${AppConstants.appVersion}',
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              gradient: AppColors.violetGradient,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              '${AppConstants.appName} v${AppConstants.appVersion}',
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                letterSpacing: 0.5,
+              ),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 16),
           Text(
-            '© 2024 Myks Radio. Tous droits réservés.',
+            '© 2024 Myks Radio',
             style: TextStyle(
               fontSize: 12,
-              color: Colors.white.withOpacity(0.7),
+              fontWeight: FontWeight.w600,
+              color: Colors.white.withOpacity(0.8),
             ),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 4),
           Text(
-            'Développé avec ❤️ en Flutter',
+            'Tous droits réservés',
             style: TextStyle(
-              fontSize: 12,
-              color: Colors.white.withOpacity(0.7),
+              fontSize: 11,
+              color: Colors.white.withOpacity(0.6),
             ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Développé avec',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.white.withOpacity(0.6),
+                ),
+              ),
+              const SizedBox(width: 4),
+              const Text('❤️', style: TextStyle(fontSize: 11)),
+              const SizedBox(width: 4),
+              Text(
+                'en Flutter',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.white.withOpacity(0.6),
+                ),
+              ),
+            ],
           ),
         ],
       ),

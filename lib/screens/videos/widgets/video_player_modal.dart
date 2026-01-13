@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import 'package:flutter/services.dart';
+import 'package:video_player/video_player.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../config/theme.dart';
 import '../../../models/video.dart';
+import '../../../services/youtube_service.dart';
+import '../../../widgets/custom_video_controls.dart';
 
 /// Modal dialog for playing YouTube videos
 class VideoPlayerModal extends StatefulWidget {
@@ -24,29 +27,89 @@ class VideoPlayerModal extends StatefulWidget {
 }
 
 class _VideoPlayerModalState extends State<VideoPlayerModal> {
-  late YoutubePlayerController _controller;
+  VideoPlayerController? _controller;
+  final _youtubeService = YouTubeService();
+  bool _isLoading = true;
+  String? _error;
+  bool _isFullscreen = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = YoutubePlayerController(
-      initialVideoId: widget.video.youtubeId,
-      flags: const YoutubePlayerFlags(
-        autoPlay: true,
-        mute: false,
-        disableDragSeek: false,
-        loop: false,
-        isLive: false,
-        forceHD: false,
-        enableCaption: true,
-      ),
-    );
+    _initializePlayer();
+  }
+
+  Future<void> _initializePlayer() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+
+      // Extract stream URL
+      final streamUrl = await _youtubeService.getStreamUrl(
+        widget.video.youtubeId,
+        quality: StreamQuality.medium,
+      );
+
+      // Create and initialize controller
+      _controller = VideoPlayerController.networkUrl(Uri.parse(streamUrl));
+      await _controller!.initialize();
+
+      // Auto-play
+      _controller!.play();
+
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error initializing video player: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _error = e.toString();
+        });
+      }
+    }
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _exitFullscreen();
+    _controller?.dispose();
     super.dispose();
+  }
+
+  void _toggleFullscreen() {
+    setState(() {
+      _isFullscreen = !_isFullscreen;
+    });
+
+    if (_isFullscreen) {
+      // Enter fullscreen
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+    } else {
+      _exitFullscreen();
+    }
+  }
+
+  void _exitFullscreen() {
+    if (_isFullscreen) {
+      SystemChrome.setEnabledSystemUIMode(
+        SystemUiMode.manual,
+        overlays: SystemUiOverlay.values,
+      );
+      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+      setState(() {
+        _isFullscreen = false;
+      });
+    }
   }
 
   @override
@@ -77,17 +140,9 @@ class _VideoPlayerModalState extends State<VideoPlayerModal> {
               borderRadius: const BorderRadius.vertical(
                 bottom: Radius.circular(20),
               ),
-              child: YoutubePlayer(
-                controller: _controller,
-                showVideoProgressIndicator: true,
-                progressIndicatorColor: AppColors.primaryLight,
-                progressColors: const ProgressBarColors(
-                  playedColor: AppColors.primaryLight,
-                  handleColor: AppColors.primaryDark,
-                ),
-                onReady: () {
-                  // Video is ready
-                },
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: _buildVideoPlayer(),
               ),
             ),
 
@@ -96,6 +151,80 @@ class _VideoPlayerModalState extends State<VideoPlayerModal> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildVideoPlayer() {
+    if (_isLoading) {
+      return Container(
+        color: Colors.black,
+        child: const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      );
+    }
+
+    if (_error != null) {
+      return Container(
+        color: Colors.black,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white, size: 48),
+              const SizedBox(height: 16),
+              Text(
+                'Erreur de chargement',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  _error!,
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                  textAlign: TextAlign.center,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(height: 24),
+              OutlinedButton.icon(
+                icon: const Icon(Icons.open_in_new, size: 18),
+                label: const Text('Voir sur YouTube'),
+                onPressed: () => _openOnYouTube(),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  side: const BorderSide(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_controller == null || !_controller!.value.isInitialized) {
+      return Container(
+        color: Colors.black,
+        child: const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      );
+    }
+
+    return Stack(
+      children: [
+        VideoPlayer(_controller!),
+        CustomVideoControls(
+          controller: _controller!,
+          onFullscreenToggle: _toggleFullscreen,
+        ),
+      ],
     );
   }
 
@@ -200,25 +329,89 @@ class VideoPlayerBottomSheet extends StatefulWidget {
 }
 
 class _VideoPlayerBottomSheetState extends State<VideoPlayerBottomSheet> {
-  late YoutubePlayerController _controller;
+  VideoPlayerController? _controller;
+  final _youtubeService = YouTubeService();
+  bool _isLoading = true;
+  String? _error;
+  bool _isFullscreen = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = YoutubePlayerController(
-      initialVideoId: widget.video.youtubeId,
-      flags: const YoutubePlayerFlags(
-        autoPlay: true,
-        mute: false,
-        enableCaption: true,
-      ),
-    );
+    _initializePlayer();
+  }
+
+  Future<void> _initializePlayer() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+
+      // Extract stream URL
+      final streamUrl = await _youtubeService.getStreamUrl(
+        widget.video.youtubeId,
+        quality: StreamQuality.medium,
+      );
+
+      // Create and initialize controller
+      _controller = VideoPlayerController.networkUrl(Uri.parse(streamUrl));
+      await _controller!.initialize();
+
+      // Auto-play
+      _controller!.play();
+
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error initializing video player: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _error = e.toString();
+        });
+      }
+    }
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _exitFullscreen();
+    _controller?.dispose();
     super.dispose();
+  }
+
+  void _toggleFullscreen() {
+    setState(() {
+      _isFullscreen = !_isFullscreen;
+    });
+
+    if (_isFullscreen) {
+      // Enter fullscreen
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+    } else {
+      _exitFullscreen();
+    }
+  }
+
+  void _exitFullscreen() {
+    if (_isFullscreen) {
+      SystemChrome.setEnabledSystemUIMode(
+        SystemUiMode.manual,
+        overlays: SystemUiOverlay.values,
+      );
+      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+      setState(() {
+        _isFullscreen = false;
+      });
+    }
   }
 
   @override
@@ -274,11 +467,7 @@ class _VideoPlayerBottomSheetState extends State<VideoPlayerBottomSheet> {
           const SizedBox(height: 8),
 
           // Video player
-          YoutubePlayer(
-            controller: _controller,
-            showVideoProgressIndicator: true,
-            progressIndicatorColor: AppColors.primaryLight,
-          ),
+          AspectRatio(aspectRatio: 16 / 9, child: _buildVideoPlayer()),
 
           // Actions
           Padding(
@@ -308,6 +497,59 @@ class _VideoPlayerBottomSheetState extends State<VideoPlayerBottomSheet> {
           SizedBox(height: MediaQuery.of(context).padding.bottom),
         ],
       ),
+    );
+  }
+
+  Widget _buildVideoPlayer() {
+    if (_isLoading) {
+      return Container(
+        color: Colors.black,
+        child: const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      );
+    }
+
+    if (_error != null) {
+      return Container(
+        color: Colors.black,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white, size: 48),
+              const SizedBox(height: 16),
+              const Text(
+                'Erreur de chargement',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_controller == null || !_controller!.value.isInitialized) {
+      return Container(
+        color: Colors.black,
+        child: const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      );
+    }
+
+    return Stack(
+      children: [
+        VideoPlayer(_controller!),
+        CustomVideoControls(
+          controller: _controller!,
+          onFullscreenToggle: _toggleFullscreen,
+        ),
+      ],
     );
   }
 }
