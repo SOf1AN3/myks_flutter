@@ -53,37 +53,31 @@ class ApiService {
 
   /// Get radio configuration
   Future<RadioConfig> getConfig() async {
-    try {
+    return _retryRequest(() async {
       final response = await _dio.get('/api/config');
       return RadioConfig.fromJson(response.data);
-    } on DioException catch (e) {
-      throw _handleError(e);
-    }
+    });
   }
 
   /// Update radio configuration
   Future<bool> updateConfig(RadioConfig config) async {
-    try {
+    return _retryRequest(() async {
       final response = await _dio.put('/api/config', data: config.toJson());
       return response.data['success'] == true;
-    } on DioException catch (e) {
-      throw _handleError(e);
-    }
+    });
   }
 
   // ==================== Metadata Endpoints ====================
 
   /// Get radio metadata from stream URL
   Future<RadioMetadata> getMetadata(String streamUrl) async {
-    try {
+    return _retryRequest(() async {
       final response = await _dio.get(
         '/api/metadata',
         queryParameters: {'url': streamUrl},
       );
       return RadioMetadata.fromJson(response.data);
-    } on DioException catch (e) {
-      throw _handleError(e);
-    }
+    });
   }
 
   // ==================== Video Endpoints ====================
@@ -101,25 +95,25 @@ class ApiService {
     _cancelTokens['getVideos'] = cancelToken;
 
     try {
-      final response = await _dio.get(
-        '/api/videos',
-        queryParameters: {
-          'page': page,
-          'limit': limit,
-          if (search != null && search.isNotEmpty) 'search': search,
-        },
-        cancelToken: cancelToken,
-      );
+      return await _retryRequest(() async {
+        final response = await _dio.get(
+          '/api/videos',
+          queryParameters: {
+            'page': page,
+            'limit': limit,
+            if (search != null && search.isNotEmpty) 'search': search,
+          },
+          cancelToken: cancelToken,
+        );
 
-      final List<dynamic> data = response.data is List
-          ? response.data
-          : response.data['videos'] ?? [];
+        final List<dynamic> data = response.data is List
+            ? response.data
+            : response.data['videos'] ?? [];
 
+        return data.map((json) => Video.fromJson(json)).toList();
+      });
+    } finally {
       _cancelTokens.remove('getVideos');
-      return data.map((json) => Video.fromJson(json)).toList();
-    } on DioException catch (e) {
-      _cancelTokens.remove('getVideos');
-      throw _handleError(e);
     }
   }
 
@@ -132,24 +126,25 @@ class ApiService {
     _cancelTokens['getFeaturedVideo'] = cancelToken;
 
     try {
-      final response = await _dio.get(
-        '/api/videos/featured',
-        cancelToken: cancelToken,
-      );
+      return await _retryRequest(() async {
+        final response = await _dio.get(
+          '/api/videos/featured',
+          cancelToken: cancelToken,
+        );
 
-      if (response.data == null || response.data.isEmpty) {
-        _cancelTokens.remove('getFeaturedVideo');
-        return null;
-      }
+        if (response.data == null || response.data.isEmpty) {
+          return null;
+        }
 
-      _cancelTokens.remove('getFeaturedVideo');
-      return Video.fromJson(response.data);
+        return Video.fromJson(response.data);
+      }, shouldRetry404: false);
     } on DioException catch (e) {
-      _cancelTokens.remove('getFeaturedVideo');
       if (e.response?.statusCode == 404) {
         return null;
       }
-      throw _handleError(e);
+      rethrow;
+    } finally {
+      _cancelTokens.remove('getFeaturedVideo');
     }
   }
 
@@ -160,7 +155,7 @@ class ApiService {
     String description = '',
     bool isFeatured = false,
   }) async {
-    try {
+    return _retryRequest(() async {
       final response = await _dio.post(
         '/api/videos',
         data: {
@@ -171,59 +166,127 @@ class ApiService {
         },
       );
       return Video.fromJson(response.data);
-    } on DioException catch (e) {
-      throw _handleError(e);
-    }
+    });
   }
 
   /// Delete a video
   Future<bool> deleteVideo(String id) async {
-    try {
+    return _retryRequest(() async {
       await _dio.delete('/api/videos/$id');
       return true;
-    } on DioException catch (e) {
-      throw _handleError(e);
-    }
+    });
   }
 
   /// Update video featured status
   Future<bool> setVideoFeatured(String id, bool isFeatured) async {
-    try {
+    return _retryRequest(() async {
       await _dio.patch('/api/videos/$id', data: {'isFeatured': isFeatured});
       return true;
-    } on DioException catch (e) {
-      throw _handleError(e);
-    }
+    });
   }
 
   // ==================== Error Handling ====================
+
+  /// Retry mechanism for API requests (3 attempts with exponential backoff)
+  Future<T> _retryRequest<T>(
+    Future<T> Function() request, {
+    int maxRetries = 3,
+    bool shouldRetry404 = true,
+  }) async {
+    int retryCount = 0;
+    DioException? lastException;
+
+    while (retryCount < maxRetries) {
+      try {
+        return await request();
+      } on DioException catch (e) {
+        lastException = e;
+
+        // Don't retry for certain error types
+        if (!_shouldRetryError(e, shouldRetry404)) {
+          throw _handleError(e);
+        }
+
+        retryCount++;
+        if (retryCount >= maxRetries) {
+          throw _handleError(e);
+        }
+
+        // Exponential backoff: 500ms, 1000ms, 2000ms
+        final delayMs = 500 * (1 << (retryCount - 1));
+        await Future.delayed(Duration(milliseconds: delayMs));
+
+        if (kDebugMode) {
+          print('Tentative $retryCount/$maxRetries après ${delayMs}ms');
+        }
+      }
+    }
+
+    // Should never reach here, but just in case
+    throw _handleError(lastException!);
+  }
+
+  /// Determine if an error should trigger a retry
+  bool _shouldRetryError(DioException e, bool shouldRetry404) {
+    switch (e.type) {
+      // Retry on timeout and connection errors
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.receiveTimeout:
+      case DioExceptionType.connectionError:
+        return true;
+
+      // Don't retry on cancellation
+      case DioExceptionType.cancel:
+        return false;
+
+      // Retry on server errors (5xx) and some client errors
+      case DioExceptionType.badResponse:
+        final statusCode = e.response?.statusCode;
+        if (statusCode == null) return false;
+
+        // Retry on server errors
+        if (statusCode >= 500) return true;
+
+        // Optionally retry on 404
+        if (statusCode == 404) return shouldRetry404;
+
+        // Don't retry on other client errors (4xx)
+        return false;
+
+      default:
+        return false;
+    }
+  }
 
   String _handleError(DioException e) {
     switch (e.type) {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
-        return 'Connection timeout. Please check your internet connection.';
+        return 'Délai de connexion dépassé. Vérifiez votre connexion internet.';
       case DioExceptionType.badResponse:
         final statusCode = e.response?.statusCode;
         final message =
             e.response?.data?['message'] ?? e.response?.data?['error'];
         if (statusCode == 401) {
-          return 'Unauthorized. Please login again.';
+          return 'Non autorisé. Veuillez vous reconnecter.';
         } else if (statusCode == 403) {
-          return 'Access denied.';
+          return 'Accès refusé.';
         } else if (statusCode == 404) {
-          return 'Resource not found.';
+          return 'Ressource non trouvée.';
         } else if (statusCode == 500) {
-          return 'Server error. Please try again later.';
+          return 'Erreur serveur. Veuillez réessayer plus tard.';
+        } else if (statusCode == 503) {
+          return 'Service temporairement indisponible.';
         }
-        return message ?? 'An error occurred (Error $statusCode)';
+        return message ?? 'Une erreur s\'est produite (Erreur $statusCode)';
       case DioExceptionType.cancel:
-        return 'Request was cancelled.';
+        return 'Requête annulée.';
       case DioExceptionType.connectionError:
-        return 'No internet connection.';
+        return 'Aucune connexion internet. Vérifiez votre réseau.';
       default:
-        return 'An unexpected error occurred.';
+        return 'Une erreur inattendue s\'est produite. Veuillez réessayer.';
     }
   }
 

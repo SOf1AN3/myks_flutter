@@ -82,9 +82,9 @@ class TrackHistory extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        color: (isDark ? Colors.white : Colors.black).withOpacity(0.05),
+        color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.05),
         border: Border.all(
-          color: (isDark ? Colors.white : Colors.black).withOpacity(0.1),
+          color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.1),
         ),
       ),
       child: Column(
@@ -135,7 +135,7 @@ class _TrackItem extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        color: (isDark ? Colors.white : Colors.black).withOpacity(0.03),
+        color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.03),
       ),
       child: Row(
         children: [

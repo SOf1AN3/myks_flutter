@@ -123,7 +123,7 @@ class AboutScreen extends StatelessWidget {
             fontSize: 10,
             fontWeight: FontWeight.bold,
             letterSpacing: 2,
-            color: Colors.white.withOpacity(0.4),
+            color: Colors.white.withValues(alpha: 0.4),
           ),
         ),
         const SizedBox(height: 4),
@@ -132,7 +132,7 @@ class AboutScreen extends StatelessWidget {
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: Colors.white.withOpacity(0.9),
+            color: Colors.white.withValues(alpha: 0.9),
           ),
         ),
       ],
@@ -173,7 +173,10 @@ class AboutScreen extends StatelessWidget {
 
         Text(
           'Votre destination musicale préférée',
-          style: TextStyle(fontSize: 16, color: Colors.white.withOpacity(0.7)),
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.white.withValues(alpha: 0.7),
+          ),
           textAlign: TextAlign.center,
         ),
       ],
@@ -217,7 +220,7 @@ class AboutScreen extends StatelessWidget {
             style: TextStyle(
               fontSize: 14,
               height: 1.6,
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha: 0.8),
             ),
           ),
         ],
@@ -258,7 +261,7 @@ class AboutScreen extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 1.0,
+        childAspectRatio: 0.85,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
       ),
@@ -291,27 +294,31 @@ class AboutScreen extends StatelessWidget {
             child: Icon(feature.icon, color: Colors.white, size: 24),
           ),
           const SizedBox(height: 12),
-          Text(
-            feature.title,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-              height: 1.2,
+          Flexible(
+            child: Text(
+              feature.title,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                height: 1.2,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
-            maxLines: 2,
-            overflow: TextOverflow.visible,
           ),
           const SizedBox(height: 6),
-          Text(
-            feature.description,
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.white.withOpacity(0.7),
-              height: 1.4,
+          Flexible(
+            child: Text(
+              feature.description,
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.white.withValues(alpha: 0.7),
+                height: 1.4,
+              ),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
             ),
-            maxLines: 3,
-            overflow: TextOverflow.visible,
           ),
         ],
       ),
@@ -334,8 +341,10 @@ class AboutScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.spaceEvenly,
             children: [
               _buildSocialButton(
                 icon: Icons.facebook,
@@ -374,23 +383,33 @@ class AboutScreen extends StatelessWidget {
     required String url,
     required Color color,
   }) {
-    return Column(
-      children: [
-        InkWell(
-          onTap: () => _launchUrl(url),
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(16),
+    return SizedBox(
+      width: 70,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          InkWell(
+            onTap: () => _launchUrl(url),
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(icon, color: color, size: 28),
             ),
-            child: Icon(icon, color: color, size: 28),
           ),
-        ),
-        const SizedBox(height: 8),
-        Text(label, style: const TextStyle(fontSize: 12)),
-      ],
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 12),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
     );
   }
 
@@ -424,7 +443,7 @@ class AboutScreen extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha: 0.8),
             ),
             textAlign: TextAlign.center,
           ),
@@ -433,7 +452,7 @@ class AboutScreen extends StatelessWidget {
             'Tous droits réservés',
             style: TextStyle(
               fontSize: 11,
-              color: Colors.white.withOpacity(0.6),
+              color: Colors.white.withValues(alpha: 0.6),
             ),
             textAlign: TextAlign.center,
           ),
@@ -445,7 +464,7 @@ class AboutScreen extends StatelessWidget {
                 'Développé avec',
                 style: TextStyle(
                   fontSize: 11,
-                  color: Colors.white.withOpacity(0.6),
+                  color: Colors.white.withValues(alpha: 0.6),
                 ),
               ),
               const SizedBox(width: 4),
@@ -455,7 +474,7 @@ class AboutScreen extends StatelessWidget {
                 'en Flutter',
                 style: TextStyle(
                   fontSize: 11,
-                  color: Colors.white.withOpacity(0.6),
+                  color: Colors.white.withValues(alpha: 0.6),
                 ),
               ),
             ],

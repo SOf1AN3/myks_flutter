@@ -55,51 +55,53 @@ class MeshGradientBackground extends StatelessWidget {
     // to avoid unnecessary rebuilds on constraint changes
     final size = MediaQuery.sizeOf(context);
 
-    return Container(
-      decoration: const BoxDecoration(color: AppColors.darkBackgroundDeep),
-      child: Stack(
-        children: [
-          // PERFORMANCE: Wrapped in RepaintBoundary to isolate repaints
-          RepaintBoundary(
-            child: Stack(
-              children: [
-                // Radial gradient 1 - Top Left
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  child: Container(
-                    width: size.width * 0.6,
-                    height: size.height * 0.4,
-                    decoration: _gradient1,
+    return ExcludeSemantics(
+      child: Container(
+        decoration: const BoxDecoration(color: AppColors.darkBackgroundDeep),
+        child: Stack(
+          children: [
+            // PERFORMANCE: Wrapped in RepaintBoundary to isolate repaints
+            RepaintBoundary(
+              child: Stack(
+                children: [
+                  // Radial gradient 1 - Top Left
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    child: Container(
+                      width: size.width * 0.6,
+                      height: size.height * 0.4,
+                      decoration: _gradient1,
+                    ),
                   ),
-                ),
-                // Radial gradient 2 - Top Right
-                Positioned(
-                  top: 0,
-                  right: 0,
-                  child: Container(
-                    width: size.width * 0.6,
-                    height: size.height * 0.4,
-                    decoration: _gradient2,
+                  // Radial gradient 2 - Top Right
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    child: Container(
+                      width: size.width * 0.6,
+                      height: size.height * 0.4,
+                      decoration: _gradient2,
+                    ),
                   ),
-                ),
-                // Radial gradient 3 - Bottom Center
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: Container(
-                    width: size.width,
-                    height: size.height * 0.5,
-                    decoration: _gradient3,
+                  // Radial gradient 3 - Bottom Center
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: Container(
+                      width: size.width,
+                      height: size.height * 0.5,
+                      decoration: _gradient3,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          // Content
-          child,
-        ],
+            // Content
+            child,
+          ],
+        ),
       ),
     );
   }

@@ -30,6 +30,9 @@ class VideosProvider extends ChangeNotifier {
   String? _error;
   String? get error => _error;
 
+  bool _isUsingCache = false;
+  bool get isUsingCache => _isUsingCache;
+
   String _searchQuery = '';
   String get searchQuery => _searchQuery;
 
@@ -113,6 +116,7 @@ class VideosProvider extends ChangeNotifier {
 
     _isLoading = true;
     _error = null;
+    _isUsingCache = false;
     notifyListeners();
 
     try {
@@ -123,16 +127,25 @@ class VideosProvider extends ChangeNotifier {
 
       // Batch state updates with single notification
       _isLoading = false;
+      _isUsingCache = false;
       notifyListeners();
     } catch (e) {
-      _error = e.toString();
+      _error = _getUserFriendlyErrorMessage(e.toString());
+
       // Fall back to cached data
       final cached = _storage.getCachedVideos(
         maxAge: const Duration(hours: 24),
       );
-      if (cached != null) {
+      if (cached != null && cached.isNotEmpty) {
         _videos = cached;
         _applySearch();
+        _isUsingCache = true;
+        // Update error message to indicate using cache
+        _error = 'Mode hors ligne : affichage des vidéos en cache';
+      } else {
+        // No cache available
+        _error =
+            'Impossible de charger les vidéos. ${_getUserFriendlyErrorMessage(e.toString())}';
       }
 
       // Batch state updates with single notification
@@ -159,8 +172,10 @@ class VideosProvider extends ChangeNotifier {
       );
       if (cached != null) {
         _featuredVideo = cached;
+        _isUsingCache = true;
         notifyListeners();
       }
+      // Don't show error for featured video, it's optional
     }
   }
 
@@ -265,6 +280,42 @@ class VideosProvider extends ChangeNotifier {
     } catch (e) {
       return null;
     }
+  }
+
+  /// Convert technical error messages to user-friendly French messages
+  String _getUserFriendlyErrorMessage(String error) {
+    final lowerError = error.toLowerCase();
+
+    // Network-related errors
+    if (lowerError.contains('connexion internet') ||
+        lowerError.contains('aucune connexion') ||
+        lowerError.contains('no internet') ||
+        lowerError.contains('connection error')) {
+      return 'Aucune connexion internet disponible.';
+    }
+
+    // Timeout errors
+    if (lowerError.contains('délai') || lowerError.contains('timeout')) {
+      return 'Le serveur met trop de temps à répondre.';
+    }
+
+    // Server errors
+    if (lowerError.contains('serveur') ||
+        lowerError.contains('server') ||
+        lowerError.contains('503') ||
+        lowerError.contains('500')) {
+      return 'Le serveur est temporairement indisponible.';
+    }
+
+    // Not found errors
+    if (lowerError.contains('non trouvée') ||
+        lowerError.contains('not found') ||
+        lowerError.contains('404')) {
+      return 'Ressource non disponible.';
+    }
+
+    // Default message for API errors
+    return 'Impossible de se connecter au serveur.';
   }
 
   @override

@@ -47,17 +47,15 @@ class YouTubeService {
       }
 
       // Trier par qualité (du plus haut au plus bas)
-      muxedStreams.sort(
-        (a, b) => b.videoQualityLabel.compareTo(a.videoQualityLabel),
-      );
+      muxedStreams.sort((a, b) => b.qualityLabel.compareTo(a.qualityLabel));
 
       switch (quality) {
         case StreamQuality.high:
           // Chercher 1080p ou 720p
           streamInfo = muxedStreams.firstWhere(
             (s) =>
-                s.videoQualityLabel.contains('1080') ||
-                s.videoQualityLabel.contains('720'),
+                s.qualityLabel.contains('1080') ||
+                s.qualityLabel.contains('720'),
             orElse: () => muxedStreams.first,
           );
           break;
@@ -66,8 +64,8 @@ class YouTubeService {
           // Chercher 720p ou 480p (optimal pour performance)
           streamInfo = muxedStreams.firstWhere(
             (s) =>
-                s.videoQualityLabel.contains('720') ||
-                s.videoQualityLabel.contains('480'),
+                s.qualityLabel.contains('720') ||
+                s.qualityLabel.contains('480'),
             orElse: () => muxedStreams.first,
           );
           break;
@@ -76,8 +74,8 @@ class YouTubeService {
           // Chercher 360p ou moins
           streamInfo = muxedStreams.firstWhere(
             (s) =>
-                s.videoQualityLabel.contains('360') ||
-                s.videoQualityLabel.contains('240'),
+                s.qualityLabel.contains('360') ||
+                s.qualityLabel.contains('240'),
             orElse: () => muxedStreams.last,
           );
           break;
@@ -92,7 +90,7 @@ class YouTubeService {
       );
 
       debugPrint(
-        'YouTubeService: Stream URL obtained for $videoId (${streamInfo.videoQualityLabel})',
+        'YouTubeService: Stream URL obtained for $videoId (${streamInfo.qualityLabel})',
       );
 
       return url;

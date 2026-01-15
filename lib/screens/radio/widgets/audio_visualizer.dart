@@ -51,47 +51,49 @@ class _SimpleAudioVisualizerState extends State<SimpleAudioVisualizer>
 
   @override
   Widget build(BuildContext context) {
-    return RepaintBoundary(
-      child: LiquidGlassContainer(
-        height: 200,
-        borderRadius: GlassEffects.radiusLarge,
-        child: Center(
-          child: AnimatedBuilder(
-            animation: _controller,
-            builder: (context, child) {
-              return Stack(
-                alignment: Alignment.center,
-                children: [
-                  // Outer pulsing circle
-                  _buildPulsingCircle(size: 140, opacity: 0.15, delay: 0.0),
-                  // Middle pulsing circle
-                  _buildPulsingCircle(size: 100, opacity: 0.25, delay: 0.33),
-                  // Inner pulsing circle
-                  _buildPulsingCircle(size: 60, opacity: 0.4, delay: 0.66),
-                  // Center solid circle with gradient
-                  Container(
-                    width: 30,
-                    height: 30,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: RadialGradient(
-                        colors: [
-                          AppColors.primary,
-                          AppColors.primary.withOpacity(0.6),
+    return ExcludeSemantics(
+      child: RepaintBoundary(
+        child: LiquidGlassContainer(
+          height: 200,
+          borderRadius: GlassEffects.radiusLarge,
+          child: Center(
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (context, child) {
+                return Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Outer pulsing circle
+                    _buildPulsingCircle(size: 140, opacity: 0.15, delay: 0.0),
+                    // Middle pulsing circle
+                    _buildPulsingCircle(size: 100, opacity: 0.25, delay: 0.33),
+                    // Inner pulsing circle
+                    _buildPulsingCircle(size: 60, opacity: 0.4, delay: 0.66),
+                    // Center solid circle with gradient
+                    Container(
+                      width: 30,
+                      height: 30,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [
+                            AppColors.primary,
+                            AppColors.primary.withValues(alpha: 0.6),
+                          ],
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.5),
+                            blurRadius: 20,
+                            spreadRadius: 5,
+                          ),
                         ],
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withOpacity(0.5),
-                          blurRadius: 20,
-                          spreadRadius: 5,
-                        ),
-                      ],
                     ),
-                  ),
-                ],
-              );
-            },
+                  ],
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -116,7 +118,7 @@ class _SimpleAudioVisualizerState extends State<SimpleAudioVisualizer>
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(
-            color: AppColors.primary.withOpacity(pulseOpacity),
+            color: AppColors.primary.withValues(alpha: pulseOpacity),
             width: 2,
           ),
         ),
@@ -194,34 +196,38 @@ class _CompactAudioVisualizerState extends State<CompactAudioVisualizer>
 
   @override
   Widget build(BuildContext context) {
-    return RepaintBoundary(
-      child: SizedBox(
-        height: widget.height,
-        child: AnimatedBuilder(
-          animation: _controller,
-          builder: (context, child) {
-            return Row(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: List.generate(widget.barCount, (index) {
-                // Calculate height using sine wave with unique phase
-                final phase = _phases[index];
-                final value = math.sin(_controller.value * 2 * math.pi + phase);
-                final heightFactor =
-                    0.3 + ((value + 1) / 2) * 0.7; // Range: 0.3 to 1.0
+    return ExcludeSemantics(
+      child: RepaintBoundary(
+        child: SizedBox(
+          height: widget.height,
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: List.generate(widget.barCount, (index) {
+                  // Calculate height using sine wave with unique phase
+                  final phase = _phases[index];
+                  final value = math.sin(
+                    _controller.value * 2 * math.pi + phase,
+                  );
+                  final heightFactor =
+                      0.3 + ((value + 1) / 2) * 0.7; // Range: 0.3 to 1.0
 
-                return Container(
-                  width: 3,
-                  height: widget.height * heightFactor,
-                  margin: const EdgeInsets.symmetric(horizontal: 1),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(1.5),
-                    color: widget.color,
-                  ),
-                );
-              }),
-            );
-          },
+                  return Container(
+                    width: 3,
+                    height: widget.height * heightFactor,
+                    margin: const EdgeInsets.symmetric(horizontal: 1),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(1.5),
+                      color: widget.color,
+                    ),
+                  );
+                }),
+              );
+            },
+          ),
         ),
       ),
     );

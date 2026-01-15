@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:video_player/video_player.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../config/theme.dart';
 import '../../config/routes.dart';
+import '../../config/constants.dart';
 import '../../models/video.dart';
 import '../../providers/videos_provider.dart';
 import '../../providers/radio_provider.dart';
-import '../../services/youtube_service.dart';
 import '../../widgets/bottom_navigation.dart';
 import '../../widgets/common_widgets.dart';
 import '../../widgets/mini_player.dart';
 import '../../widgets/mesh_gradient_background.dart';
-import '../../widgets/custom_video_controls.dart';
-import '../../widgets/fullscreen_video_player.dart';
+import '../../widgets/liquid_glass_container.dart';
 
 /// Home screen with featured video and navigation
 class HomeScreen extends StatefulWidget {
@@ -31,13 +31,13 @@ class _HomeScreenState extends State<HomeScreen> {
   static const _videoFadeDelay = Duration(milliseconds: 100);
   static const _ctaFadeDuration = Duration(milliseconds: 400);
   static const _ctaFadeDelay = Duration(milliseconds: 200);
+  static const _footerFadeDuration = Duration(milliseconds: 400);
+  static const _footerFadeDelay = Duration(milliseconds: 300);
 
-  VideoPlayerController? _videoController;
-  String? _streamUrl;
+  YoutubePlayerController? _youtubeController;
   bool _controllerInitialized = false;
   bool _shouldLoadVideo = false; // PERFORMANCE: Flag for lazy loading
   bool _isLoadingVideo = false; // Loading state indicator
-  final _youtubeService = YouTubeService();
 
   @override
   void initState() {
@@ -53,7 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   /// PERFORMANCE: Lazy initialization - only when user taps to load
-  Future<void> _onVideoTapToLoad() async {
+  void _onVideoTapToLoad() {
     if (_controllerInitialized || _isLoadingVideo) return;
 
     final featuredVideo = context.read<VideosProvider>().featuredVideo;
@@ -63,48 +63,38 @@ class _HomeScreenState extends State<HomeScreen> {
       _isLoadingVideo = true;
     });
 
-    try {
-      // Initialize controller in post-frame callback to avoid build-during-build
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        if (!mounted) return;
+    // Initialize controller in post-frame callback to avoid build-during-build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
 
-        // 1. Extract stream URL
-        _streamUrl = await _youtubeService.getStreamUrl(
-          featuredVideo.youtubeId,
-          quality: StreamQuality.medium,
-        );
+      _youtubeController = YoutubePlayerController(
+        initialVideoId: featuredVideo.youtubeId,
+        flags: const YoutubePlayerFlags(
+          autoPlay: false,
+          mute: false,
+          disableDragSeek: false,
+          loop: false,
+          isLive: false,
+          forceHD: false,
+          enableCaption: true,
+        ),
+      );
+      _controllerInitialized = true;
 
-        // 2. Create video player controller
-        _videoController = VideoPlayerController.networkUrl(
-          Uri.parse(_streamUrl!),
-        );
-
-        // 3. Initialize controller
-        await _videoController!.initialize();
-        _controllerInitialized = true;
-
-        if (mounted) {
-          setState(() {
-            _shouldLoadVideo = true;
-            _isLoadingVideo = false;
-          });
-        }
-      });
-    } catch (e) {
-      debugPrint('Error initializing video player: $e');
       if (mounted) {
         setState(() {
+          _shouldLoadVideo = true;
           _isLoadingVideo = false;
         });
       }
-    }
+    });
   }
 
   @override
   void dispose() {
-    // OPTIMIZED: Proper cleanup of video controller
-    _videoController?.dispose();
-    _videoController = null;
+    // OPTIMIZED: Proper cleanup of YouTube controller
+    _youtubeController?.dispose();
+    _youtubeController = null;
     super.dispose();
   }
 
@@ -151,6 +141,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     _buildCTAButtons().animate().fadeIn(
                       duration: _ctaFadeDuration,
                       delay: _ctaFadeDelay,
+                    ),
+
+                    const SizedBox(height: 60),
+
+                    // Footer - PERFORMANCE: Simplified animation
+                    _buildFooter().animate().fadeIn(
+                      duration: _footerFadeDuration,
+                      delay: _footerFadeDelay,
                     ),
                   ],
                 ),
@@ -210,10 +208,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
         Text(
           'Votre radio en ligne 24/7',
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.white.withValues(alpha: 0.6),
-          ),
+          style: TextStyle(fontSize: 16, color: Colors.white.withOpacity(0.6)),
           textAlign: TextAlign.center,
         ),
       ],
@@ -236,32 +231,46 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           borderRadius: BorderRadius.circular(GlassEffects.radiusLarge),
         ),
-        child: AspectRatio(
-          aspectRatio: 16 / 9,
-          child: _shouldLoadVideo && _videoController != null
-              ? Stack(
-                  children: [
-                    VideoPlayer(_videoController!),
-                    CustomVideoControls(
-                      controller: _videoController!,
-                      onFullscreenToggle: _openFullscreen,
-                    ),
-                  ],
-                )
-              : _buildVideoThumbnail(featuredVideo),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Video Player or Thumbnail
+            AspectRatio(
+              aspectRatio: 16 / 9,
+              child: _shouldLoadVideo && _youtubeController != null
+                  ? YoutubePlayer(
+                      controller: _youtubeController!,
+                      showVideoProgressIndicator: true,
+                      progressIndicatorColor: AppColors.primaryLight,
+                      progressColors: const ProgressBarColors(
+                        playedColor: AppColors.primaryLight,
+                        handleColor: AppColors.primaryDark,
+                      ),
+                    )
+                  : _buildVideoThumbnail(featuredVideo),
+            ),
+
+            // Video info inside same container
+            if (featuredVideo != null)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: const BoxDecoration(
+                  color: Color(0x08FFFFFF), // rgba(255, 255, 255, 0.03)
+                ),
+                child: Text(
+                  featuredVideo.title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+          ],
         ),
-      ),
-    );
-  }
-
-  /// Opens the video in native fullscreen mode
-  void _openFullscreen() {
-    if (_videoController == null) return;
-
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) =>
-            FullscreenVideoPlayer(controller: _videoController!),
       ),
     );
   }
@@ -305,8 +314,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withValues(alpha: 0.2),
-                    Colors.black.withValues(alpha: 0.5),
+                    Colors.black.withOpacity(0.2),
+                    Colors.black.withOpacity(0.5),
                   ],
                 ),
               ),
@@ -323,7 +332,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       width: 80,
                       height: 80,
                       decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.6),
+                        color: Colors.black.withOpacity(0.6),
                         borderRadius: BorderRadius.circular(40),
                       ),
                       child: const Center(
@@ -357,10 +366,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.6),
+                        color: Colors.black.withOpacity(0.6),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.2),
+                          color: Colors.white.withOpacity(0.2),
                           width: 1,
                         ),
                       ),
@@ -397,20 +406,20 @@ class _HomeScreenState extends State<HomeScreen> {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.08),
+                color: Colors.white.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(40),
               ),
               child: Icon(
                 Icons.play_circle_outline,
                 size: 48,
-                color: Colors.white.withValues(alpha: 0.5),
+                color: Colors.white.withOpacity(0.5),
               ),
             ),
             const SizedBox(height: 16),
             Text(
               'Aucune vidéo disponible',
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.5),
+                color: Colors.white.withOpacity(0.5),
                 fontSize: 14,
               ),
             ),
@@ -474,13 +483,13 @@ class _HomeScreenState extends State<HomeScreen> {
       child: GestureDetector(
         onTap: () => Navigator.pushNamed(context, AppRoutes.videos),
         child: Container(
-          height: 72,
+          height: 56,
           width: double.infinity,
           decoration: BoxDecoration(
             // PERFORMANCE: Removed BackdropFilter, using static glass color
             color: AppColors.glassBackground,
-            borderRadius: BorderRadius.circular(36),
-            border: Border.all(color: AppColors.glassBorder, width: 1.5),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: AppColors.glassBorder, width: 1),
             boxShadow: GlassEffects.glassShadow,
           ),
           child: Row(
@@ -488,17 +497,16 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Icon(
                 Icons.video_library,
-                color: Colors.white.withValues(alpha: 0.9),
-                size: 28,
+                color: Colors.white.withOpacity(0.9),
+                size: 24,
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Text(
                 'Voir les Vidéos',
                 style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white.withValues(alpha: 0.9),
-                  letterSpacing: 0.5,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white.withOpacity(0.9),
                 ),
               ),
             ],
@@ -506,5 +514,81 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildFooter() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: LiquidGlassContainer(
+        padding: const EdgeInsets.all(24),
+        showInnerGlow: true,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '© 2024 Myks Radio. Tous droits réservés.',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.white.withOpacity(0.6),
+                letterSpacing: 0.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 16,
+              runSpacing: 12,
+              children: [
+                _buildSocialButton(
+                  Icons.facebook,
+                  'Facebook',
+                  AppConstants.facebookUrl,
+                ),
+                _buildSocialButton(
+                  Icons.camera_alt,
+                  'Instagram',
+                  AppConstants.instagramUrl,
+                ),
+                _buildSocialButton(
+                  Icons.music_note,
+                  'Twitter',
+                  AppConstants.twitterUrl,
+                ),
+                _buildSocialButton(
+                  Icons.play_circle,
+                  'YouTube',
+                  AppConstants.youtubeUrl,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSocialButton(IconData icon, String label, String url) {
+    return GestureDetector(
+      onTap: () => _launchUrl(url),
+      child: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.08),
+          border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: GlassEffects.glassShadow,
+        ),
+        child: Icon(icon, color: Colors.white.withOpacity(0.7), size: 24),
+      ),
+    );
+  }
+
+  Future<void> _launchUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 }

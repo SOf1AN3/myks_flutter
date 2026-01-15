@@ -33,6 +33,9 @@ class RadioProvider extends ChangeNotifier {
   String? _error;
   String? get error => _error;
 
+  bool _isOffline = false;
+  bool get isOffline => _isOffline;
+
   String _streamUrl = AppConstants.defaultStreamUrl;
   String get streamUrl => _streamUrl;
 
@@ -50,8 +53,41 @@ class RadioProvider extends ChangeNotifier {
   bool get isLive => isPlaying && _metadata?.isLive == true;
 
   Track? get currentTrack => _metadata?.currentTrack;
-  String get currentTitle => _metadata?.title ?? 'Myks Radio';
-  String get currentArtist => _metadata?.artist ?? 'En attente...';
+
+  /// Get current title with fallback based on player state
+  String get currentTitle {
+    // If we have metadata title, use it
+    if (_metadata?.title != null && _metadata!.title!.isNotEmpty) {
+      return _metadata!.title!;
+    }
+
+    // Otherwise, provide context-aware fallback
+    if (isPlaying) {
+      return 'Myks Radio';
+    } else if (isLoading) {
+      return 'Connexion en cours...';
+    } else {
+      return 'Myks Radio';
+    }
+  }
+
+  /// Get current artist with fallback based on player state
+  String get currentArtist {
+    // If we have metadata artist, use it
+    if (_metadata?.artist != null && _metadata!.artist!.isNotEmpty) {
+      return _metadata!.artist!;
+    }
+
+    // Otherwise, provide context-aware fallback
+    if (isPlaying) {
+      return 'En direct'; // Playing but no metadata yet
+    } else if (isLoading) {
+      return 'Chargement...';
+    } else {
+      return 'En attente...';
+    }
+  }
+
   String? get currentCover => _metadata?.coverUrl;
 
   RadioProvider({
@@ -103,7 +139,8 @@ class RadioProvider extends ChangeNotifier {
     });
 
     _errorSubscription = _audioService.errorStream.listen((error) {
-      _error = error;
+      _error = _getUserFriendlyErrorMessage(error);
+      _checkOfflineStatus(error);
       notifyListeners();
     });
 
@@ -128,19 +165,37 @@ class RadioProvider extends ChangeNotifier {
   /// Play the radio
   Future<void> play() async {
     _error = null;
+    _isOffline = false;
     notifyListeners();
-    await _audioService.play();
+
+    try {
+      await _audioService.play();
+    } catch (e) {
+      _error = _getUserFriendlyErrorMessage(e.toString());
+      _checkOfflineStatus(e.toString());
+      notifyListeners();
+    }
   }
 
   /// Pause the radio
   Future<void> pause() async {
-    await _audioService.pause();
+    try {
+      await _audioService.pause();
+    } catch (e) {
+      _error = _getUserFriendlyErrorMessage(e.toString());
+      notifyListeners();
+    }
   }
 
   /// Stop the radio
   Future<void> stop() async {
-    await _audioService.stop();
-    _icecastService.stopPolling();
+    try {
+      await _audioService.stop();
+      _icecastService.stopPolling();
+    } catch (e) {
+      _error = _getUserFriendlyErrorMessage(e.toString());
+      notifyListeners();
+    }
   }
 
   /// Toggle play/pause
@@ -187,6 +242,59 @@ class RadioProvider extends ChangeNotifier {
   /// Get radio configuration
   RadioConfig get config =>
       RadioConfig(streamUrl: _streamUrl, name: AppConstants.appName);
+
+  /// Convert technical error messages to user-friendly French messages
+  String _getUserFriendlyErrorMessage(String error) {
+    final lowerError = error.toLowerCase();
+
+    // Network-related errors
+    if (lowerError.contains('connection') ||
+        lowerError.contains('network') ||
+        lowerError.contains('connexion') ||
+        lowerError.contains('réseau')) {
+      return 'Impossible de se connecter. Vérifiez votre connexion internet.';
+    }
+
+    // Timeout errors
+    if (lowerError.contains('timeout') || lowerError.contains('délai')) {
+      return 'La connexion a pris trop de temps. Vérifiez votre connexion.';
+    }
+
+    // Stream/audio errors
+    if (lowerError.contains('stream') ||
+        lowerError.contains('audio') ||
+        lowerError.contains('source')) {
+      return 'Impossible de lire le flux audio. Le serveur est peut-être indisponible.';
+    }
+
+    // Format errors
+    if (lowerError.contains('format') || lowerError.contains('decode')) {
+      return 'Format audio non pris en charge.';
+    }
+
+    // Server errors
+    if (lowerError.contains('server') ||
+        lowerError.contains('serveur') ||
+        lowerError.contains('503') ||
+        lowerError.contains('500')) {
+      return 'Le serveur radio est temporairement indisponible.';
+    }
+
+    // Default message
+    return 'Une erreur s\'est produite lors de la lecture. Veuillez réessayer.';
+  }
+
+  /// Check if error indicates offline status
+  void _checkOfflineStatus(String error) {
+    final lowerError = error.toLowerCase();
+    _isOffline =
+        lowerError.contains('connection') ||
+        lowerError.contains('network') ||
+        lowerError.contains('connexion') ||
+        lowerError.contains('réseau') ||
+        lowerError.contains('offline') ||
+        lowerError.contains('hors ligne');
+  }
 
   @override
   void dispose() {

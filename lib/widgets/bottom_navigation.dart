@@ -5,50 +5,73 @@ import '../config/theme.dart';
 
 /// Bottom navigation bar with liquid glass effect
 /// Redesigned to match design.html aesthetic
+///
+/// Performance Optimization:
+/// - [enableBlur] is false by default for better performance
+/// - BackdropFilter is expensive! Only enable when truly necessary
 class AppBottomNavigation extends StatelessWidget {
   final int currentIndex;
+  final bool enableBlur;
 
-  const AppBottomNavigation({super.key, required this.currentIndex});
+  const AppBottomNavigation({
+    super.key,
+    required this.currentIndex,
+    this.enableBlur = false, // PERFORMANCE: Default to false
+  });
 
   @override
   Widget build(BuildContext context) {
     return RepaintBoundary(
-      child: Container(
-        decoration: BoxDecoration(
-          // PERFORMANCE: Removed BackdropFilter, using static glass effect
-          color: AppColors.glassBackground,
-          border: Border(
-            top: BorderSide(color: Colors.white.withOpacity(0.1), width: 1),
-          ),
+      child: ClipRect(
+        child: enableBlur
+            ? BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                child: _buildContent(context),
+              )
+            : _buildContent(context),
+      ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.glassBackground,
+        border: Border(
+          top: BorderSide(color: Colors.white.withValues(alpha: 0.1), width: 1),
         ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _NavItem(
-                  icon: Icons.home,
-                  isActive: currentIndex == 0,
-                  onTap: () => _onItemTapped(context, 0),
-                ),
-                _NavItem(
-                  icon: Icons.radio,
-                  isActive: currentIndex == 1,
-                  onTap: () => _onItemTapped(context, 1),
-                ),
-                _NavItem(
-                  icon: Icons.video_library,
-                  isActive: currentIndex == 2,
-                  onTap: () => _onItemTapped(context, 2),
-                ),
-                _NavItem(
-                  icon: Icons.info_outline,
-                  isActive: currentIndex == 3,
-                  onTap: () => _onItemTapped(context, 3),
-                ),
-              ],
-            ),
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(32, 16, 32, 24),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _NavItem(
+                icon: Icons.home,
+                label: 'Accueil',
+                isActive: currentIndex == 0,
+                onTap: () => _onItemTapped(context, 0),
+              ),
+              _NavItem(
+                icon: Icons.radio,
+                label: 'Radio',
+                isActive: currentIndex == 1,
+                onTap: () => _onItemTapped(context, 1),
+              ),
+              _NavItem(
+                icon: Icons.video_library,
+                label: 'Vidéos',
+                isActive: currentIndex == 2,
+                onTap: () => _onItemTapped(context, 2),
+              ),
+              _NavItem(
+                icon: Icons.info_outline,
+                label: 'À propos',
+                isActive: currentIndex == 3,
+                onTap: () => _onItemTapped(context, 3),
+              ),
+            ],
           ),
         ),
       ),
@@ -99,39 +122,49 @@ class AppBottomNavigation extends StatelessWidget {
 /// Navigation item with icon and active indicator
 class _NavItem extends StatelessWidget {
   final IconData icon;
+  final String label;
   final bool isActive;
   final VoidCallback onTap;
 
   const _NavItem({
     required this.icon,
+    required this.label,
     required this.isActive,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            size: 28,
-            color: isActive ? AppColors.primary : Colors.white.withOpacity(0.4),
-          ),
-          const SizedBox(height: 4),
-          // Active indicator dot
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: isActive ? 4 : 0,
-            height: isActive ? 4 : 0,
-            decoration: const BoxDecoration(
-              color: AppColors.primary,
-              shape: BoxShape.circle,
+    return Semantics(
+      button: true,
+      label: label,
+      selected: isActive,
+      hint: isActive ? 'Sélectionné' : 'Appuyez pour naviguer vers $label',
+      child: GestureDetector(
+        onTap: onTap,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 28,
+              color: isActive
+                  ? AppColors.primary
+                  : Colors.white.withValues(alpha: 0.4),
             ),
-          ),
-        ],
+            const SizedBox(height: 2),
+            // Active indicator dot
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: isActive ? 4 : 0,
+              height: isActive ? 4 : 0,
+              decoration: const BoxDecoration(
+                color: AppColors.primary,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

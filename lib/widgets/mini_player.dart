@@ -98,55 +98,60 @@ class _MiniPlayerContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return RepaintBoundary(
-      child: GestureDetector(
-        onTap: () {
-          final currentRoute = ModalRoute.of(context)?.settings.name;
-          if (currentRoute != AppRoutes.radio) {
-            Navigator.pushNamed(context, AppRoutes.radio);
-          }
-        },
-        child: Container(
-          margin: const EdgeInsets.all(12),
-          // PERFORMANCE: Removed BackdropFilter, using static glass effect
-          decoration: BoxDecoration(
-            color: (isDark ? Colors.black : Colors.white).withOpacity(0.8),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: (isDark ? Colors.white : Colors.black).withOpacity(0.1),
+    return Semantics(
+      container: true,
+      label: 'Mini lecteur - ${state.currentTitle} par ${state.currentArtist}',
+      hint: 'Appuyez pour ouvrir le lecteur complet',
+      child: RepaintBoundary(
+        child: GestureDetector(
+          onTap: () {
+            final currentRoute = ModalRoute.of(context)?.settings.name;
+            if (currentRoute != AppRoutes.radio) {
+              Navigator.pushNamed(context, AppRoutes.radio);
+            }
+          },
+          child: Container(
+            margin: const EdgeInsets.all(12),
+            // PERFORMANCE: Removed BackdropFilter, using static glass effect
+            decoration: BoxDecoration(
+              color: (isDark ? Colors.black : Colors.white).withValues(alpha: 0.8),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.1),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 20,
+                  offset: const Offset(0, -2),
+                ),
+              ],
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 20,
-                offset: const Offset(0, -2),
-              ),
-            ],
-          ),
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Animated progress bar
-              if (state.isPlaying) _buildProgressBar(),
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Animated progress bar
+                if (state.isPlaying) _buildProgressBar(),
 
-              const SizedBox(height: 8),
+                const SizedBox(height: 8),
 
-              Row(
-                children: [
-                  // Album art
-                  _buildAlbumArt(),
+                Row(
+                  children: [
+                    // Album art
+                    _buildAlbumArt(),
 
-                  const SizedBox(width: 12),
+                    const SizedBox(width: 12),
 
-                  // Track info
-                  Expanded(child: _buildTrackInfo(context)),
+                    // Track info
+                    Expanded(child: _buildTrackInfo(context)),
 
-                  // Controls
-                  _buildControls(context),
-                ],
-              ),
-            ],
+                    // Controls
+                    _buildControls(context),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -171,7 +176,7 @@ class _MiniPlayerContent extends StatelessWidget {
               .animate(onPlay: (controller) => controller.repeat())
               .shimmer(
                 duration: const Duration(seconds: 2),
-                color: AppColors.primaryDark.withOpacity(0.5),
+                color: AppColors.primaryDark.withValues(alpha: 0.5),
               ),
     );
   }
@@ -278,61 +283,76 @@ class _MiniPlayerContent extends StatelessWidget {
   }
 
   Widget _buildControls(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Volume button (optional popup)
-        IconButton(
-          icon: Icon(
-            state.volume == 0 ? Icons.volume_off : Icons.volume_up,
-            size: 20,
+    return Semantics(
+      container: true,
+      label: 'Contrôles de lecture',
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Volume button (optional popup)
+          Semantics(
+            button: true,
+            label: state.volume == 0 ? 'Réactiver le son' : 'Couper le son',
+            hint: 'Volume actuel : ${(state.volume * 100).round()}%',
+            child: IconButton(
+              icon: Icon(
+                state.volume == 0 ? Icons.volume_off : Icons.volume_up,
+                size: 20,
+              ),
+              onPressed: () {
+                final radioProvider = context.read<RadioProvider>();
+                // Toggle mute
+                if (state.volume > 0) {
+                  radioProvider.setVolume(0);
+                } else {
+                  radioProvider.setVolume(0.8);
+                }
+              },
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            ),
           ),
-          onPressed: () {
-            final radioProvider = context.read<RadioProvider>();
-            // Toggle mute
-            if (state.volume > 0) {
-              radioProvider.setVolume(0);
-            } else {
-              radioProvider.setVolume(0.8);
-            }
-          },
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-        ),
 
-        // Play/Pause button
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            gradient: AppColors.violetGradient,
-            borderRadius: BorderRadius.circular(20),
+          // Play/Pause button
+          Semantics(
+            button: true,
+            label: state.isLoading
+                ? 'Chargement'
+                : (state.isPlaying ? 'Mettre en pause' : 'Lire'),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                gradient: AppColors.violetGradient,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: IconButton(
+                icon: state.isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Icon(
+                        state.isPlaying ? Icons.pause : Icons.play_arrow,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                onPressed: state.isLoading
+                    ? null
+                    : () {
+                        final radioProvider = context.read<RadioProvider>();
+                        radioProvider.togglePlayPause();
+                      },
+                padding: EdgeInsets.zero,
+              ),
+            ),
           ),
-          child: IconButton(
-            icon: state.isLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : Icon(
-                    state.isPlaying ? Icons.pause : Icons.play_arrow,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-            onPressed: state.isLoading
-                ? null
-                : () {
-                    final radioProvider = context.read<RadioProvider>();
-                    radioProvider.togglePlayPause();
-                  },
-            padding: EdgeInsets.zero,
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

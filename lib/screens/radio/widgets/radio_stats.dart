@@ -79,9 +79,9 @@ class _StatCard extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        color: (isDark ? Colors.white : Colors.black).withOpacity(0.05),
+        color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.05),
         border: Border.all(
-          color: (isDark ? Colors.white : Colors.black).withOpacity(0.1),
+          color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.1),
         ),
       ),
       child: Column(

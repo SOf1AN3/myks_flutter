@@ -9,12 +9,14 @@ class CustomVideoControls extends StatefulWidget {
   final VideoPlayerController controller;
   final VoidCallback? onFullscreenToggle;
   final bool showFullscreenButton;
+  final bool isFullscreen;
 
   const CustomVideoControls({
     super.key,
     required this.controller,
     this.onFullscreenToggle,
     this.showFullscreenButton = true,
+    this.isFullscreen = false,
   });
 
   @override
@@ -113,9 +115,9 @@ class _CustomVideoControlsState extends State<CustomVideoControls> {
                   height: 80,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.black.withOpacity(0.6),
+                    color: Colors.black.withValues(alpha: 0.6),
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.3),
+                      color: Colors.white.withValues(alpha: 0.3),
                       width: 2,
                     ),
                   ),
@@ -163,8 +165,8 @@ class _CustomVideoControlsState extends State<CustomVideoControls> {
                         allowScrubbing: true,
                         colors: VideoProgressColors(
                           playedColor: AppColors.primary,
-                          bufferedColor: Colors.white.withOpacity(0.3),
-                          backgroundColor: Colors.white.withOpacity(0.1),
+                          bufferedColor: Colors.white.withValues(alpha: 0.3),
+                          backgroundColor: Colors.white.withValues(alpha: 0.1),
                         ),
                         padding: const EdgeInsets.symmetric(vertical: 8),
                       ),
@@ -221,8 +223,10 @@ class _CustomVideoControlsState extends State<CustomVideoControls> {
                           // Fullscreen button
                           if (widget.showFullscreenButton)
                             IconButton(
-                              icon: const Icon(
-                                Icons.fullscreen_rounded,
+                              icon: Icon(
+                                widget.isFullscreen
+                                    ? Icons.fullscreen_exit_rounded
+                                    : Icons.fullscreen_rounded,
                                 color: Colors.white,
                                 size: 22,
                               ),
@@ -232,7 +236,9 @@ class _CustomVideoControlsState extends State<CustomVideoControls> {
                                 minWidth: 40,
                                 minHeight: 40,
                               ),
-                              tooltip: 'Plein écran',
+                              tooltip: widget.isFullscreen
+                                  ? 'Quitter le plein écran'
+                                  : 'Plein écran',
                             ),
                         ],
                       ),
@@ -250,7 +256,7 @@ class _CustomVideoControlsState extends State<CustomVideoControls> {
                 height: 60,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.black.withOpacity(0.6),
+                  color: Colors.black.withValues(alpha: 0.6),
                 ),
                 child: const Padding(
                   padding: EdgeInsets.all(16.0),

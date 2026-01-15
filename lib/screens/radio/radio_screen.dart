@@ -236,8 +236,8 @@ class RadioScreen extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        color: AppColors.error.withOpacity(0.1),
-        border: Border.all(color: AppColors.error.withOpacity(0.3)),
+        color: AppColors.error.withValues(alpha: 0.1),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -267,14 +267,14 @@ class _MetadataItem extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 16, color: AppColors.primary.withOpacity(0.8)),
+        Icon(icon, size: 16, color: AppColors.primary.withValues(alpha: 0.8)),
         const SizedBox(width: 6),
         Text(
           label,
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w500,
-            color: Colors.white.withOpacity(0.7),
+            color: Colors.white.withValues(alpha: 0.7),
           ),
         ),
       ],

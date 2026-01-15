@@ -21,7 +21,7 @@ class LiveCommunityPanel extends StatelessWidget {
             width: 48,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -52,7 +52,7 @@ class LiveCommunityPanel extends StatelessWidget {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.live.withOpacity(0.8),
+                          color: AppColors.live.withValues(alpha: 0.8),
                           blurRadius: 8,
                           offset: const Offset(0, 0),
                         ),
@@ -68,10 +68,10 @@ class LiveCommunityPanel extends StatelessWidget {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
+                  color: Colors.white.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.1),
+                    color: Colors.white.withValues(alpha: 0.1),
                     width: 1,
                   ),
                 ),
@@ -80,7 +80,7 @@ class LiveCommunityPanel extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                   ),
                 ),
               ),
@@ -136,9 +136,12 @@ class _CommentCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.1), width: 1),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.1),
+          width: 1,
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -151,7 +154,7 @@ class _CommentCard extends StatelessWidget {
               gradient: avatarGradient,
               shape: BoxShape.circle,
               border: Border.all(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 width: 1,
               ),
             ),
@@ -182,7 +185,7 @@ class _CommentCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white.withOpacity(0.6),
+                        color: Colors.white.withValues(alpha: 0.6),
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -190,7 +193,7 @@ class _CommentCard extends StatelessWidget {
                       time,
                       style: TextStyle(
                         fontSize: 10,
-                        color: Colors.white.withOpacity(0.4),
+                        color: Colors.white.withValues(alpha: 0.4),
                       ),
                     ),
                   ],
@@ -200,7 +203,7 @@ class _CommentCard extends StatelessWidget {
                   comment,
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                     height: 1.3,
                   ),
                 ),
@@ -235,7 +238,10 @@ class _UpNextCard extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.2),
+              width: 1,
+            ),
           ),
           child: Icon(Icons.queue_music, color: AppColors.primary, size: 24),
         ),
@@ -260,7 +266,7 @@ class _UpNextCard extends StatelessWidget {
                 subtitle,
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.white.withOpacity(0.6),
+                  color: Colors.white.withValues(alpha: 0.6),
                 ),
               ),
             ],
@@ -272,12 +278,12 @@ class _UpNextCard extends StatelessWidget {
           width: 32,
           height: 32,
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
+            color: Colors.white.withValues(alpha: 0.05),
             shape: BoxShape.circle,
           ),
           child: Icon(
             Icons.more_vert,
-            color: Colors.white.withOpacity(0.5),
+            color: Colors.white.withValues(alpha: 0.5),
             size: 20,
           ),
         ),

@@ -93,16 +93,22 @@ class LiquidGlassContainer extends StatelessWidget {
 }
 
 /// A compact liquid glass control button container
+///
+/// Performance Optimization:
+/// - [enableBlur] is false by default for better performance
+/// - BackdropFilter is expensive! Only enable when truly necessary
 class LiquidControlContainer extends StatelessWidget {
   final Widget child;
   final double size;
   final VoidCallback? onTap;
+  final bool enableBlur;
 
   const LiquidControlContainer({
     super.key,
     required this.child,
     this.size = 40,
     this.onTap,
+    this.enableBlur = false, // PERFORMANCE: Default to false
   });
 
   @override
@@ -113,9 +119,9 @@ class LiquidControlContainer extends StatelessWidget {
         child: Container(
           width: size,
           height: size,
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             shape: BoxShape.circle,
-            boxShadow: const [
+            boxShadow: [
               BoxShadow(
                 color: Color(0x33000000),
                 blurRadius: 8,
@@ -124,33 +130,41 @@ class LiquidControlContainer extends StatelessWidget {
             ],
           ),
           child: ClipOval(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(
-                sigmaX: GlassEffects.blurIntensityControl,
-                sigmaY: GlassEffects.blurIntensityControl,
-              ),
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [
-                      Color(0x26FFFFFF), // rgba(255, 255, 255, 0.15)
-                      Color(0x0DFFFFFF), // rgba(255, 255, 255, 0.05)
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  border: Border.all(
-                    color: AppColors.glassControlBorder,
-                    width: 1,
-                  ),
-                  shape: BoxShape.circle,
-                ),
-                child: Center(child: child),
-              ),
-            ),
+            child: enableBlur
+                ? BackdropFilter(
+                    filter: ImageFilter.blur(
+                      sigmaX: GlassEffects.blurIntensityControl,
+                      sigmaY: GlassEffects.blurIntensityControl,
+                    ),
+                    child: _buildGlassContent(),
+                  )
+                : _buildGlassContent(),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildGlassContent() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Color(0x26FFFFFF), // rgba(255, 255, 255, 0.15)
+            Color(0x0DFFFFFF), // rgba(255, 255, 255, 0.05)
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        border: Border(
+          top: BorderSide(color: AppColors.glassControlBorder, width: 1),
+          left: BorderSide(color: AppColors.glassControlBorder, width: 1),
+          right: BorderSide(color: AppColors.glassControlBorder, width: 1),
+          bottom: BorderSide(color: AppColors.glassControlBorder, width: 1),
+        ),
+        shape: BoxShape.circle,
+      ),
+      child: Center(child: child),
     );
   }
 }

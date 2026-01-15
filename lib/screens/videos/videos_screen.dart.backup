@@ -1,7 +1,9 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../config/theme.dart';
+import '../../models/video.dart';
 import '../../providers/videos_provider.dart';
 import '../../providers/radio_provider.dart';
 import '../../widgets/bottom_navigation.dart';
@@ -66,9 +68,10 @@ class _VideosScreenState extends State<VideosScreen> {
                 onRefresh: () => videosProvider.refresh(),
                 child: CustomScrollView(
                   slivers: [
-                    // Header
+                    // Header with back button
                     SliverToBoxAdapter(
-                      child: ScreenHeader(
+                      child: ScreenHeader.withBack(
+                        context: context,
                         title: 'VIDÉOS',
                         subtitle: 'DÉCOUVREZ',
                       ).animate().fadeIn(duration: _headerFadeDuration),
@@ -153,18 +156,18 @@ class _VideosScreenState extends State<VideosScreen> {
           decoration: InputDecoration(
             hintText: 'Rechercher une vidéo...',
             hintStyle: TextStyle(
-              color: Colors.white.withValues(alpha: 0.5),
+              color: Colors.white.withOpacity(0.5),
               fontSize: 14,
             ),
             prefixIcon: Icon(
               Icons.search,
-              color: Colors.white.withValues(alpha: 0.7),
+              color: Colors.white.withOpacity(0.7),
             ),
             suffixIcon: _searchController.text.isNotEmpty
                 ? IconButton(
                     icon: Icon(
                       Icons.clear,
-                      color: Colors.white.withValues(alpha: 0.7),
+                      color: Colors.white.withOpacity(0.7),
                     ),
                     onPressed: () {
                       _searchController.clear();
@@ -191,7 +194,7 @@ class _VideosScreenState extends State<VideosScreen> {
         '${videosProvider.totalVideos} vidéo${videosProvider.totalVideos > 1 ? 's' : ''} trouvée${videosProvider.totalVideos > 1 ? 's' : ''}',
         style: TextStyle(
           fontSize: 12,
-          color: Colors.white.withValues(alpha: 0.6),
+          color: Colors.white.withOpacity(0.6),
           letterSpacing: 0.5,
         ),
       ),
@@ -202,8 +205,8 @@ class _VideosScreenState extends State<VideosScreen> {
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       sliver: SliverGrid(
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: _calculateCrossAxisCount(context),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
           childAspectRatio: 0.7,
           crossAxisSpacing: 16,
           mainAxisSpacing: 16,
@@ -226,26 +229,12 @@ class _VideosScreenState extends State<VideosScreen> {
     );
   }
 
-  /// Calculate responsive cross axis count based on screen width
-  int _calculateCrossAxisCount(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    if (width >= 1200) {
-      return 4; // Large tablets/desktops
-    } else if (width >= 900) {
-      return 3; // Tablets landscape
-    } else if (width >= 600) {
-      return 2; // Tablets portrait / large phones landscape
-    } else {
-      return 2; // Phones
-    }
-  }
-
   Widget _buildLoadingGrid() {
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       sliver: SliverGrid(
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: _calculateCrossAxisCount(context),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
           childAspectRatio: 0.7,
           crossAxisSpacing: 16,
           mainAxisSpacing: 16,
@@ -269,7 +258,7 @@ class _VideosScreenState extends State<VideosScreen> {
             Icon(
               Icons.error_outline,
               size: 64,
-              color: AppColors.error.withValues(alpha: 0.8),
+              color: AppColors.error.withOpacity(0.8),
             ),
             const SizedBox(height: 16),
             const Text(
@@ -285,7 +274,7 @@ class _VideosScreenState extends State<VideosScreen> {
               error,
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.white.withValues(alpha: 0.7),
+                color: Colors.white.withOpacity(0.7),
               ),
               textAlign: TextAlign.center,
             ),
@@ -301,7 +290,7 @@ class _VideosScreenState extends State<VideosScreen> {
                   gradient: AppColors.violetGradient,
                   borderRadius: BorderRadius.circular(GlassEffects.radiusSmall),
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.2),
+                    color: Colors.white.withOpacity(0.2),
                     width: 1,
                   ),
                 ),
@@ -338,7 +327,7 @@ class _VideosScreenState extends State<VideosScreen> {
             Icon(
               Icons.video_library_outlined,
               size: 64,
-              color: Colors.white.withValues(alpha: 0.5),
+              color: Colors.white.withOpacity(0.5),
             ),
             const SizedBox(height: 16),
             const Text(
@@ -354,7 +343,7 @@ class _VideosScreenState extends State<VideosScreen> {
               'Essayez de modifier votre recherche',
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.white.withValues(alpha: 0.7),
+                color: Colors.white.withOpacity(0.7),
               ),
             ),
           ],
@@ -381,7 +370,7 @@ class _VideosScreenState extends State<VideosScreen> {
                 Icons.chevron_left,
                 color: videosProvider.currentPage > 1
                     ? Colors.white
-                    : Colors.white.withValues(alpha: 0.3),
+                    : Colors.white.withOpacity(0.3),
                 size: 20,
               ),
             ),
@@ -403,7 +392,7 @@ class _VideosScreenState extends State<VideosScreen> {
                 Icons.chevron_right,
                 color: videosProvider.currentPage < videosProvider.totalPages
                     ? Colors.white
-                    : Colors.white.withValues(alpha: 0.3),
+                    : Colors.white.withOpacity(0.3),
                 size: 20,
               ),
             ),
@@ -425,12 +414,12 @@ class _VideosScreenState extends State<VideosScreen> {
           height: 36,
           decoration: BoxDecoration(
             gradient: isActive ? AppColors.violetGradient : null,
-            color: isActive ? null : Colors.white.withValues(alpha: 0.1),
+            color: isActive ? null : Colors.white.withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: isActive
-                  ? Colors.white.withValues(alpha: 0.3)
-                  : Colors.white.withValues(alpha: 0.15),
+                  ? Colors.white.withOpacity(0.3)
+                  : Colors.white.withOpacity(0.15),
               width: 1,
             ),
           ),

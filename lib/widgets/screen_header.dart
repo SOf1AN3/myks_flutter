@@ -56,7 +56,7 @@ class ScreenHeader extends StatelessWidget {
               fontSize: 10,
               fontWeight: FontWeight.bold,
               letterSpacing: 2,
-              color: Colors.white.withOpacity(0.4),
+              color: Colors.white.withValues(alpha: 0.4),
             ),
           ),
           const SizedBox(height: 4),
@@ -66,7 +66,7 @@ class ScreenHeader extends StatelessWidget {
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: Colors.white.withOpacity(0.9),
+            color: Colors.white.withValues(alpha: 0.9),
           ),
         ),
       ],

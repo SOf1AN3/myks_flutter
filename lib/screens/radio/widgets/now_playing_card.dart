@@ -21,52 +21,76 @@ class NowPlayingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        color: (isDark ? Colors.white : Colors.black).withOpacity(0.05),
-        border: Border.all(
-          color: (isDark ? Colors.white : Colors.black).withOpacity(0.1),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header with status
-          Row(
-            children: [
-              _buildStatusBadge(isDark),
-              const Spacer(),
-              if (isPlaying) _buildLiveIndicator(),
-            ],
-          ),
+    final String statusText = isLoading
+        ? 'Connexion en cours'
+        : isPlaying
+        ? 'En direct'
+        : 'En pause';
 
-          const SizedBox(height: 16),
+    final String trackInfo = metadata != null
+        ? '${metadata!.title} par ${metadata!.artist}'
+        : 'Myks Radio';
 
-          // Track info
-          Row(
-            children: [
-              // Album art
-              _buildAlbumArt(isDark),
-
-              const SizedBox(width: 16),
-
-              // Track details
-              Expanded(child: _buildTrackInfo(isDark)),
-            ],
-          ),
-
-          if (metadata != null &&
-              (metadata!.genre != null || metadata!.listeners != null)) ...[
-            const SizedBox(height: 16),
-            Divider(
-              color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+    return MergeSemantics(
+      child: Semantics(
+        container: true,
+        label: 'Lecture en cours',
+        value: '$statusText. $trackInfo',
+        hint: 'Informations sur la piste en cours de lecture',
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            color: (isDark ? Colors.white : Colors.black).withValues(
+              alpha: 0.05,
             ),
-            const SizedBox(height: 12),
-            _buildMetadataRow(isDark),
-          ],
-        ],
+            border: Border.all(
+              color: (isDark ? Colors.white : Colors.black).withValues(
+                alpha: 0.1,
+              ),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header with status
+              Row(
+                children: [
+                  ExcludeSemantics(child: _buildStatusBadge(isDark)),
+                  const Spacer(),
+                  if (isPlaying) ExcludeSemantics(child: _buildLiveIndicator()),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+
+              // Track info
+              Row(
+                children: [
+                  // Album art
+                  ExcludeSemantics(child: _buildAlbumArt(isDark)),
+
+                  const SizedBox(width: 16),
+
+                  // Track details
+                  Expanded(
+                    child: ExcludeSemantics(child: _buildTrackInfo(isDark)),
+                  ),
+                ],
+              ),
+
+              if (metadata != null &&
+                  (metadata!.genre != null || metadata!.listeners != null)) ...[
+                const SizedBox(height: 16),
+                Divider(
+                  color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                ),
+                const SizedBox(height: 12),
+                ExcludeSemantics(child: _buildMetadataRow(isDark)),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -78,12 +102,12 @@ class NowPlayingCard extends StatelessWidget {
     final IconData icon;
 
     if (isLoading) {
-      bgColor = AppColors.warning.withOpacity(0.2);
+      bgColor = AppColors.warning.withValues(alpha: 0.2);
       textColor = AppColors.warning;
       text = 'CONNEXION...';
       icon = Icons.sync;
     } else if (isPlaying) {
-      bgColor = AppColors.live.withOpacity(0.2);
+      bgColor = AppColors.live.withValues(alpha: 0.2);
       textColor = AppColors.live;
       text = 'EN DIRECT';
       icon = Icons.circle;
@@ -141,7 +165,7 @@ class NowPlayingCard extends StatelessWidget {
         Icon(
               Icons.wifi_tethering,
               size: 18,
-              color: AppColors.success.withOpacity(0.8),
+              color: AppColors.success.withValues(alpha: 0.8),
             )
             .animate(onPlay: (c) => c.repeat(reverse: true))
             .fade(duration: const Duration(milliseconds: 800)),
@@ -157,7 +181,7 @@ class NowPlayingCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withValues(alpha: 0.2),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -169,8 +193,8 @@ class NowPlayingCard extends StatelessWidget {
             ? CachedNetworkImage(
                 imageUrl: metadata!.coverUrl!,
                 fit: BoxFit.cover,
-                placeholder: (_, __) => _buildPlaceholder(),
-                errorWidget: (_, __, ___) => _buildPlaceholder(),
+                placeholder: (context, url) => _buildPlaceholder(),
+                errorWidget: (context, url, error) => _buildPlaceholder(),
               )
             : _buildPlaceholder(),
       ),

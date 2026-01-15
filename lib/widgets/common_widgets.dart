@@ -60,7 +60,7 @@ class GradientButton extends StatelessWidget {
         boxShadow: onPressed != null
             ? [
                 BoxShadow(
-                  color: AppColors.primaryLight.withOpacity(0.3),
+                  color: AppColors.primaryLight.withValues(alpha: 0.3),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -194,9 +194,9 @@ class GlassCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(borderRadius),
-        color: (isDark ? Colors.white : Colors.black).withOpacity(0.05),
+        color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.05),
         border: Border.all(
-          color: (isDark ? Colors.white : Colors.black).withOpacity(0.1),
+          color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.1),
         ),
       ),
       padding: padding ?? const EdgeInsets.all(16),

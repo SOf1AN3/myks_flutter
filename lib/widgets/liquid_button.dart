@@ -8,6 +8,7 @@ class LiquidButton extends StatefulWidget {
   final double size;
   final LiquidButtonType type;
   final bool isLoading;
+  final String? semanticLabel;
 
   const LiquidButton({
     super.key,
@@ -16,6 +17,7 @@ class LiquidButton extends StatefulWidget {
     this.size = 48,
     this.type = LiquidButtonType.control,
     this.isLoading = false,
+    this.semanticLabel,
   });
 
   /// Factory for play button
@@ -23,12 +25,22 @@ class LiquidButton extends StatefulWidget {
     required bool isPlaying,
     required bool isLoading,
     required VoidCallback onTap,
+    String? semanticLabel,
   }) {
+    final label =
+        semanticLabel ??
+        (isLoading
+            ? 'Chargement en cours'
+            : isPlaying
+            ? 'Mettre en pause'
+            : 'Lire la radio');
+
     return LiquidButton(
       size: 96,
       type: LiquidButtonType.play,
       onTap: onTap,
       isLoading: isLoading,
+      semanticLabel: label,
       child: isLoading
           ? const SizedBox(
               width: 40,
@@ -51,12 +63,14 @@ class LiquidButton extends StatefulWidget {
     required IconData icon,
     required VoidCallback onTap,
     double size = 48,
+    String? semanticLabel,
   }) {
     return LiquidButton(
       size: size,
       type: LiquidButtonType.control,
       onTap: onTap,
-      child: Icon(icon, size: 24, color: Colors.white.withOpacity(0.7)),
+      semanticLabel: semanticLabel,
+      child: Icon(icon, size: 24, color: Colors.white.withValues(alpha: 0.7)),
     );
   }
 
@@ -101,19 +115,24 @@ class _LiquidButtonState extends State<LiquidButton>
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: widget.onTap != null ? _onTapDown : null,
-      onTapUp: widget.onTap != null ? _onTapUp : null,
-      onTapCancel: widget.onTap != null ? _onTapCancel : null,
-      onTap: widget.onTap,
-      child: AnimatedBuilder(
-        animation: _scaleAnimation,
-        builder: (context, child) {
-          return Transform.scale(scale: _scaleAnimation.value, child: child);
-        },
-        child: widget.type == LiquidButtonType.play
-            ? _buildPlayButton()
-            : _buildControlButton(),
+    return Semantics(
+      button: true,
+      label: widget.semanticLabel,
+      enabled: widget.onTap != null,
+      child: GestureDetector(
+        onTapDown: widget.onTap != null ? _onTapDown : null,
+        onTapUp: widget.onTap != null ? _onTapUp : null,
+        onTapCancel: widget.onTap != null ? _onTapCancel : null,
+        onTap: widget.onTap,
+        child: AnimatedBuilder(
+          animation: _scaleAnimation,
+          builder: (context, child) {
+            return Transform.scale(scale: _scaleAnimation.value, child: child);
+          },
+          child: widget.type == LiquidButtonType.play
+              ? _buildPlayButton()
+              : _buildControlButton(),
+        ),
       ),
     );
   }
