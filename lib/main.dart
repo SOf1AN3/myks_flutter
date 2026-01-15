@@ -35,8 +35,9 @@ void main() async {
     // Initialize storage service
     await StorageService().init();
 
-    // PERFORMANCE: Warmup cache to reduce I/O jank during first screen
-    await StorageService().warmupCache();
+    // PERFORMANCE: Warmup cache asynchronously after app starts
+    // This doesn't block the first frame render
+    StorageService().warmupCache();
 
     // Run the app
     runApp(const AppInitializer(child: MyksRadioApp()));

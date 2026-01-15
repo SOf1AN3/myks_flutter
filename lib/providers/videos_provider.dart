@@ -86,11 +86,13 @@ class VideosProvider extends ChangeNotifier {
   VideosProvider({required ApiService api, required StorageService storage})
     : _api = api,
       _storage = storage {
-    _loadCachedData();
+    // PERFORMANCE: Load cached data synchronously
+    // Defer async fetching to avoid blocking app startup
+    _loadCachedDataSync();
   }
 
-  /// Load cached data on init
-  void _loadCachedData() {
+  /// Load cached data synchronously on init (fast, from memory)
+  void _loadCachedDataSync() {
     final cachedVideos = _storage.getCachedVideos();
     if (cachedVideos != null) {
       _videos = cachedVideos;
@@ -102,7 +104,8 @@ class VideosProvider extends ChangeNotifier {
       _featuredVideo = cachedFeatured;
     }
 
-    notifyListeners();
+    // PERFORMANCE: Don't notify listeners during construction
+    // The first build will already read the correct values
   }
 
   /// Fetch all videos from API

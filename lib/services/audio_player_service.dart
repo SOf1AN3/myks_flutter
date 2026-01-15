@@ -37,6 +37,8 @@ class AudioPlayerService {
   double _volume = AppConstants.defaultVolume;
   double get volume => _volume;
 
+  bool _audioSessionInitialized = false;
+
   bool get isPlaying => _currentState == RadioPlayerState.playing;
   bool get isLoading =>
       _currentState == RadioPlayerState.loading ||
@@ -44,8 +46,22 @@ class AudioPlayerService {
 
   AudioPlayerService._internal() {
     _player = AudioPlayer();
-    _initAudioSession();
+    // PERFORMANCE: Don't initialize audio session at construction
+    // It will be initialized lazily when play() is first called
     _setupPlayerListeners();
+  }
+
+  /// Initialize audio session for background playback (lazy initialization)
+  Future<void> _ensureAudioSessionInitialized() async {
+    if (_audioSessionInitialized) return;
+
+    try {
+      await _initAudioSession();
+      _audioSessionInitialized = true;
+    } catch (e) {
+      debugPrint('[AudioPlayerService] Failed to initialize audio session: $e');
+      // Continue anyway, playback might still work
+    }
   }
 
   /// Initialize audio session for background playback
@@ -148,6 +164,9 @@ class AudioPlayerService {
   /// Play the radio stream
   Future<void> play() async {
     try {
+      // PERFORMANCE: Ensure audio session is initialized before first play
+      await _ensureAudioSessionInitialized();
+
       _shouldAutoReconnect = true;
       _updateState(RadioPlayerState.loading);
 
